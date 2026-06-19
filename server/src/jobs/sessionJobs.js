@@ -1,0 +1,132 @@
+import cron from 'node-cron';
+import Session from '../models/Session.js';
+import User from '../models/User.js';
+import CreditTransaction from '../models/CreditTransaction.js';
+import { createNotification } from '../services/notification.service.js';
+import mongoose from 'mongoose';
+
+const startSessionJobs = () => {
+    // Run every minute
+    cron.schedule('* * * * *', async () => {
+        try {
+            const now = new Date();
+
+            // 1. Reminders for upcoming sessions
+            const upcomingSessions = await Session.find({
+                status: 'scheduled',
+                startTime: { $gt: now }
+            });
+
+            for (const session of upcomingSessions) {
+                const timeDiffMs = session.startTime - now;
+                const hoursDiff = timeDiffMs / (1000 * 60 * 60);
+
+                let reminderType = null;
+                let reminderMessage = null;
+
+                // We allow a small margin (e.g. 2 minutes) to prevent duplicate triggers
+                // but since it runs every minute, checking strictly might miss if server was down.
+                // A better approach is using fields like `notified24h`, but for simplicity:
+                
+                if (hoursDiff <= 24 && hoursDiff > 23.9) {
+                    reminderType = '24h';
+                    reminderMessage = 'Your session starts in 24 hours.';
+                } else if (hoursDiff <= 1 && hoursDiff > 0.98) {
+                    reminderType = '1h';
+                    reminderMessage = 'Your session starts in 1 hour. Get ready!';
+                } else if (hoursDiff <= 0.25 && hoursDiff > 0.23) {
+                    reminderType = '15m';
+                    reminderMessage = 'Your session starts in 15 minutes. Join now!';
+                }
+
+                if (reminderType) {
+                    // Send to Learner
+                    await createNotification({
+                        recipient: session.learner,
+                        type: `session_reminder_${reminderType}`,
+                        title: `Session Reminder`,
+                        message: reminderMessage,
+                        relatedEntity: session._id,
+                        relatedEntityType: "Session"
+                    });
+
+                    // Send to Mentor
+                    await createNotification({
+                        recipient: session.mentor,
+                        type: `session_reminder_${reminderType}`,
+                        title: `Session Reminder`,
+                        message: reminderMessage,
+                        relatedEntity: session._id,
+                        relatedEntityType: "Session"
+                    });
+                }
+            }
+
+            // 2. Auto-Confirm completed sessions after 48 hours
+            const autoConfirmTime = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+            const pendingConfirmationSessions = await Session.find({
+                status: 'completed_pending_confirmation',
+                completedAt: { $lt: autoConfirmTime }
+            });
+
+            for (const session of pendingConfirmationSessions) {
+                const mongoSession = await mongoose.startSession();
+                try {
+                    mongoSession.startTransaction();
+
+                    const learner = await User.findById(session.learner).session(mongoSession);
+                    if (learner && learner.lockedCredits >= session.creditCost) {
+                        learner.lockedCredits -= session.creditCost;
+                        await learner.save({ session: mongoSession });
+
+                        const mentor = await User.findByIdAndUpdate(session.mentor, {
+                            $inc: { credits: session.creditCost, completedSessions: 1 }
+                        }, { new: true, session: mongoSession });
+
+                        session.status = "completed";
+                        session.isPaid = true;
+                        await session.save({ session: mongoSession });
+
+                        await CreditTransaction.create([{
+                            user: learner._id, session: session._id, type: "debit", reason: "session_auto_completed",
+                            amount: session.creditCost, balanceAfter: learner.credits, description: `Auto-confirmed: Paid ${session.creditCost} credits`
+                        }, {
+                            user: mentor._id, session: session._id, type: "credit", reason: "session_auto_completed",
+                            amount: session.creditCost, balanceAfter: mentor.credits, description: `Auto-confirmed: Earned ${session.creditCost} credits`
+                        }], { session: mongoSession, ordered: true });
+                        
+                        await createNotification({
+                            recipient: session.mentor,
+                            type: "credits_released",
+                            title: "Credits Auto-Released",
+                            message: `The session with learner was auto-confirmed after 48 hours. ${session.creditCost} credits have been added.`,
+                            relatedEntity: session._id,
+                            relatedEntityType: "Session"
+                        });
+                        
+                        await createNotification({
+                            recipient: session.learner,
+                            type: "session_auto_confirmed",
+                            title: "Session Auto-Confirmed",
+                            message: `Your session was automatically confirmed after 48 hours.`,
+                            relatedEntity: session._id,
+                            relatedEntityType: "Session"
+                        });
+                    }
+
+                    await mongoSession.commitTransaction();
+                } catch (err) {
+                    await mongoSession.abortTransaction();
+                    console.error("Auto confirm error", err);
+                } finally {
+                    mongoSession.endSession();
+                }
+            }
+
+        } catch (error) {
+            console.error('Error in session jobs:', error);
+        }
+    });
+};
+
+export default startSessionJobs;
