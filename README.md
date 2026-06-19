@@ -121,4 +121,4 @@ We are constantly improving the platform to meet enterprise standards. Upcoming 
 - [ ] **Automated Testing**: Jest/Supertest coverage for core escrow and booking flows.
 
 ---
-*Built with ❤️ by [Your Name]*
+*Built with ❤️ by [Kunal Thakur]*
