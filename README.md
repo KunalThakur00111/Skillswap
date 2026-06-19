@@ -1,14 +1,14 @@
 <div align="center">
   <img src="./client/public/vite.svg" alt="SkillSwap Logo" width="120" />
   <h1>SkillSwap Campus</h1>
-  <p>A A Peer-to-Peer Skill Exchange & Tutoring Platform for University Students</p>
+  <p>A Peer-to-Peer Skill Exchange & Tutoring Platform for University Students</p>
 
   <div>
     <img src="https://img.shields.io/badge/Status-Active-success.svg" alt="Status" />
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />
     <img src="https://img.shields.io/badge/React-19.0-blue?logo=react" alt="React" />
     <img src="https://img.shields.io/badge/Express.js-5.1-lightgrey?logo=express" alt="Express" />
-    <img src="https://img.shields.io/badge/MongoDB-9.6-green?logo=mongodb" alt="MongoDB" />
+    <img src="https://img.shields.io/badge/MongoDB-green?logo=mongodb" alt="MongoDB" />
   </div>
 </div>
 
@@ -19,6 +19,17 @@
 SkillSwap Campus is a fully-featured, peer-to-peer learning marketplace designed specifically for university students. It empowers students to exchange knowledge by teaching what they know and learning what they need. Instead of relying on expensive external tutors, SkillSwap utilizes a closed **Credit Escrow Economy**—users earn credits by mentoring others and spend credits to book sessions.
 
 This project was built to solve the "cold start" problem in campus learning by providing structured scheduling, real-time communication, dispute resolution, and community discussion boards.
+
+## 🔥 Highlights
+
+- Real-time chat and notifications using Socket.IO
+- Credit escrow system with dispute resolution workflow
+- Calendly-style mentor booking and availability management
+- Community discussion forum with image uploads and reputation system
+- MongoDB transaction-based credit transfers
+- Secure authentication with JWT and OTP email verification
+- Mentor discovery marketplace with advanced filtering and ranking
+- Production-ready architecture with validation, security middleware, indexing, and pagination
 
 ## ✨ Key Features
 
@@ -80,8 +91,8 @@ graph TD
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/skillswap-campus.git
-cd skillswap-campus
+git clone https://github.com/KunalThakur00111/Skillswap.git
+cd Skillswap
 ```
 
 ### 2. Environment Variables
@@ -112,7 +123,20 @@ cd client
 npm install
 npm run dev
 ```
+## 📈 Core Platform Modules
 
+- Authentication & OTP Verification
+- Mentor Discovery Marketplace
+- Availability & Scheduling System
+- Credit Escrow Economy
+- Session Lifecycle Management
+- Real-Time Chat & Notifications
+- Community Doubts & Discussion Forum
+- Reputation & Review System
+- Admin Dispute Resolution
+- File Upload & Resource Sharing
+
+  
 ## 🛣️ Roadmap & Future Improvements
 
 - [ ] Google Calendar Integration
@@ -123,4 +147,9 @@ npm run dev
 - [ ] Community Moderation Tools
 
 ---
-*Built with ❤️ by [Kunal Thakur]*
+
+## 👨‍💻 Author
+
+**Kunal Thakur**
+
+Built with ❤️ using the MERN Stack.
