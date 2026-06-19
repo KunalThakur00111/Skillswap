@@ -1,7 +1,7 @@
 <div align="center">
   <img src="./client/public/vite.svg" alt="SkillSwap Logo" width="120" />
   <h1>SkillSwap Campus</h1>
-  <p>A Peer-to-Peer AI-Assisted Tutoring Marketplace for University Students</p>
+  <p>A A Peer-to-Peer Skill Exchange & Tutoring Platform for University Students</p>
 
   <div>
     <img src="https://img.shields.io/badge/Status-Active-success.svg" alt="Status" />
@@ -114,11 +114,13 @@ npm run dev
 ```
 
 ## 🛣️ Roadmap & Future Improvements
-We are constantly improving the platform to meet enterprise standards. Upcoming features include:
-- [ ] **AI Learning Assistant**: Post-session AI summaries generating actionable learning roadmaps.
-- [ ] **Centralized Error Handling**: Implementing `Zod` validation and global error middleware.
-- [ ] **Security Hardening**: Integrating `Helmet`, rate limiting, and Mongo sanitization.
-- [ ] **Automated Testing**: Jest/Supertest coverage for core escrow and booking flows.
+
+- [ ] Google Calendar Integration
+- [ ] Mobile Application
+- [ ] Mentor Verification System
+- [ ] Advanced Analytics Dashboard
+- [ ] Enhanced Automated Testing Coverage
+- [ ] Community Moderation Tools
 
 ---
 *Built with ❤️ by [Kunal Thakur]*
