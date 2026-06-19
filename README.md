@@ -82,11 +82,16 @@ graph TD
 | **Availability Calendar** | **Credit Escrow Dashboard** |
 | <img src="https://via.placeholder.com/600x400?text=Booking+Widget" width="400" /> | <img src="https://via.placeholder.com/600x400?text=Credit+Wallet" width="400" /> |
 
-## 🚀 Getting Started
+## 🚀 Live Demo
+
+- **Frontend (Vercel)**: [https://skillswap-69qv.vercel.app](https://skillswap-69qv.vercel.app)
+- **Backend API (Render)**: [https://skillswap-api-majl.onrender.com](https://skillswap-api-majl.onrender.com)
+
+## 🛠️ Local Development & Deployment
 
 ### Prerequisites
 - Node.js (v18 or higher)
-- MongoDB running locally or a MongoDB Atlas URI
+- MongoDB Atlas cluster or local MongoDB
 - Cloudinary Account (for file uploads)
 
 ### 1. Clone the repository
@@ -95,34 +100,53 @@ git clone https://github.com/KunalThakur00111/Skillswap.git
 cd Skillswap
 ```
 
-### 2. Environment Variables
-Create a `.env` file in the `server` directory:
+### 2. Environment Variables Setup
+
+**Backend (`server/.env`)**:
 ```env
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/skillswap
-JWT_SECRET=your_super_secret_jwt_key
-CLIENT_URL=http://localhost:5173
-
-# Cloudinary Setup
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+NODE_ENV=development
+CLIENT_URL=http://localhost:5173 # Use https://skillswap-69qv.vercel.app for production
+MONGO_URI=your_mongodb_connection_string_here
+JWT_SECRET=your_jwt_secret_here
+ALLOWED_COLLEGE_DOMAINS=college.edu
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_google_app_password
+EMAIL_FROM=SkillSwap Campus <your_email@gmail.com>
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
-### 3. Install Dependencies & Run
-**Terminal 1 (Backend):**
+**Frontend (`client/.env`)**:
+```env
+VITE_API_BASE_URL=http://localhost:5000/api # Use https://skillswap-api-majl.onrender.com/api in production
+VITE_API_URL=http://localhost:5000/api
+VITE_SOCKET_URL=http://localhost:5000
+```
+
+### 3. Run Locally
+**Backend**:
 ```bash
 cd server
 npm install
 npm run dev
 ```
 
-**Terminal 2 (Frontend):**
+**Frontend**:
 ```bash
 cd client
 npm install
 npm run dev
 ```
+
+### 4. Production Deployment
+1. **Database**: Create a MongoDB Atlas cluster and get the `MONGO_URI`.
+2. **Cloudinary**: Get API credentials for image uploads.
+3. **Backend (Render)**: Deploy the `server` directory and add all backend environment variables. Set `CLIENT_URL` to your Vercel URL.
+4. **Frontend (Vercel)**: Deploy the `client` directory and set the `VITE_*` environment variables to point to your Render backend.
 ## 📈 Core Platform Modules
 
 - Authentication & OTP Verification
