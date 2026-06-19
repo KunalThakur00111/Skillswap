@@ -402,6 +402,7 @@ export const login = async(req, res) => {
 
 export const forgotPassword = async(req, res) => {
     try {
+        console.log(`[Forgot Password] Request received for email: ${req.body.email}`);
         const { email } = req.body;
 
         if (!email) {
@@ -414,8 +415,10 @@ export const forgotPassword = async(req, res) => {
         const normalizedEmail = email.toLowerCase().trim();
 
         const user = await User.findOne({ email: normalizedEmail });
+        console.log(`[Forgot Password] User found: ${!!user}, IsVerified: ${user ? user.isEmailVerified : 'N/A'}`);
 
         if (!user || !user.isEmailVerified) {
+            console.log(`[Forgot Password] Early return. User doesn't exist or isn't verified.`);
             return res.status(200).json({
                 success: true,
                 message: "If this email exists, a password reset code has been sent"
@@ -427,6 +430,7 @@ export const forgotPassword = async(req, res) => {
                 (Date.now() - user.passwordResetCodeLastSentAt.getTime()) / 1000;
 
             if (secondsSinceLastCode < 60) {
+                console.log(`[Forgot Password] Rate limit hit for ${normalizedEmail}. Seconds since last: ${secondsSinceLastCode}`);
                 return res.status(429).json({
                     success: false,
                     message: `Please wait ${Math.ceil(
@@ -437,6 +441,7 @@ export const forgotPassword = async(req, res) => {
         }
 
         const resetData = createPasswordResetData();
+        console.log(`[Forgot Password] OTP generated for ${normalizedEmail}`);
 
         user.passwordResetCode = resetData.passwordResetCode;
         user.passwordResetCodeExpires = resetData.passwordResetCodeExpires;
@@ -444,7 +449,9 @@ export const forgotPassword = async(req, res) => {
 
         await user.save();
 
+        console.log(`[Forgot Password] Calling sendPasswordResetEmail...`);
         await sendPasswordResetEmail(normalizedEmail, resetData.passwordResetCode);
+        console.log(`[Forgot Password] sendPasswordResetEmail completed successfully.`);
 
         logPasswordResetCodeInDevelopment(
             normalizedEmail,
@@ -456,6 +463,7 @@ export const forgotPassword = async(req, res) => {
             message: "If this email exists, a password reset code has been sent"
         });
     } catch (error) {
+        console.error(`[Forgot Password] Catch block hit! Stack trace:`, error.stack);
         res.status(500).json({
             success: false,
             message: error.message
