@@ -112,7 +112,7 @@ function Community({ isBookmarksPage = false }) {
                 {/* Stats Column (Desktop) */}
                 <div className="hidden sm:flex flex-col items-center gap-3 shrink-0 pt-1">
                   <div className="text-center">
-                    <span className="block text-base font-bold text-slate-300">{(doubt.upvotes || []).length}</span>
+                    <span className="block text-base font-bold text-slate-300">{(doubt.upvotes || []).length - (doubt.downvotes || []).length}</span>
                     <span className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">votes</span>
                   </div>
                   <div className={`text-center rounded-lg px-3 py-1.5 ${doubt.acceptedAnswer ? 'bg-green-500/10 border border-green-500/20 text-green-400' : 'text-slate-400 border border-transparent'}`}>
@@ -157,9 +157,9 @@ function Community({ isBookmarksPage = false }) {
 
                   {/* Mobile Stats */}
                   <div className="mt-4 flex items-center gap-4 sm:hidden border-t border-white/5 pt-3">
-                    <div className="flex items-center gap-1 text-xs font-semibold text-slate-400">
-                      <ArrowUp size={14} /> {(doubt.upvotes || []).length}
-                    </div>
+                      <div className="flex items-center gap-1 text-xs font-semibold text-slate-400">
+                        <ArrowUp size={14} /> {(doubt.upvotes || []).length - (doubt.downvotes || []).length}
+                      </div>
                     <div className={`flex items-center gap-1 text-xs font-semibold ${doubt.acceptedAnswer ? 'text-green-400' : 'text-slate-400'}`}>
                       {doubt.acceptedAnswer ? <CheckCircle size={14} /> : <MessageSquare size={14} />} {(doubt.replies || []).length}
                     </div>

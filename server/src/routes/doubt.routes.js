@@ -8,6 +8,7 @@ import {
     updateDoubt,
     deleteDoubt,
     upvoteDoubt,
+    downvoteDoubt,
     bookmarkDoubt,
     getBookmarkedDoubts,
     getSimilarDoubts,
@@ -18,6 +19,7 @@ import {
     updateReply,
     deleteReply,
     upvoteReply,
+    downvoteReply,
     acceptReply
 } from "../controllers/reply.controller.js";
 
@@ -32,6 +34,7 @@ router.get("/:id", protect, getDoubtById);
 router.put("/:id", protect, updateDoubt);
 router.delete("/:id", protect, deleteDoubt);
 router.put("/:id/upvote", protect, upvoteDoubt);
+router.put("/:id/downvote", protect, downvoteDoubt);
 router.put("/:id/bookmark", protect, bookmarkDoubt);
 router.get("/:id/similar", protect, getSimilarDoubts);
 
@@ -40,6 +43,7 @@ router.post("/:doubtId/replies", protect, upload.array("images", 5), createReply
 router.put("/replies/:id", protect, updateReply);
 router.delete("/replies/:id", protect, deleteReply);
 router.put("/replies/:id/upvote", protect, upvoteReply);
+router.put("/replies/:id/downvote", protect, downvoteReply);
 router.put("/:doubtId/replies/:replyId/accept", protect, acceptReply);
 
 export default router;

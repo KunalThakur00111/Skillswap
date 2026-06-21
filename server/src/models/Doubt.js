@@ -31,6 +31,10 @@ const doubtSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   }],
+  downvotes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  }],
   replies: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Reply",

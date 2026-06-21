@@ -87,7 +87,10 @@ function DoubtDetail() {
             ...prev,
             upvotes: data.hasUpvoted 
               ? [...(prev.upvotes || []), currentUser.id] 
-              : (prev.upvotes || []).filter(uid => uid !== currentUser.id)
+              : (prev.upvotes || []).filter(uid => uid !== currentUser.id),
+            downvotes: data.hasUpvoted
+              ? (prev.downvotes || []).filter(uid => uid !== currentUser.id)
+              : prev.downvotes
           };
         });
         showToast(data.hasUpvoted ? "Upvoted!" : "Upvote removed");
@@ -97,6 +100,33 @@ function DoubtDetail() {
     } catch (error) {
       console.error("Failed to upvote", error);
       showToast("Cannot upvote your own doubt");
+    }
+  };
+
+  const handleDownvoteDoubt = async () => {
+    if (!currentUser) return;
+    try {
+      const data = await apiRequest(`/doubts/${id}/downvote`, { method: "PUT", token });
+      if (data.success) {
+        setDoubt(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            downvotes: data.hasDownvoted 
+              ? [...(prev.downvotes || []), currentUser.id] 
+              : (prev.downvotes || []).filter(uid => uid !== currentUser.id),
+            upvotes: data.hasDownvoted
+              ? (prev.upvotes || []).filter(uid => uid !== currentUser.id)
+              : prev.upvotes
+          };
+        });
+        showToast(data.hasDownvoted ? "Downvoted!" : "Downvote removed");
+      } else if (data.message) {
+        showToast(data.message);
+      }
+    } catch (error) {
+      console.error("Failed to downvote", error);
+      showToast("Cannot downvote your own doubt");
     }
   };
 
@@ -171,7 +201,10 @@ function DoubtDetail() {
                 ...r,
                 upvotes: data.hasUpvoted 
                   ? [...(r.upvotes || []), currentUser.id] 
-                  : (r.upvotes || []).filter(uid => uid !== currentUser.id)
+                  : (r.upvotes || []).filter(uid => uid !== currentUser.id),
+                downvotes: data.hasUpvoted
+                  ? (r.downvotes || []).filter(uid => uid !== currentUser.id)
+                  : r.downvotes
               };
             }
             return r;
@@ -181,6 +214,35 @@ function DoubtDetail() {
       }
     } catch (error) {
       console.error("Failed to upvote reply", error);
+    }
+  };
+
+  const handleDownvoteReply = async (replyId) => {
+    if (!currentUser) return;
+    try {
+      const data = await apiRequest(`/doubts/replies/${replyId}/downvote`, { method: "PUT", token });
+      if (data.success) {
+        setDoubt(prev => {
+          if (!prev) return prev;
+          const newReplies = (prev.replies || []).map(r => {
+            if (r._id === replyId) {
+              return {
+                ...r,
+                downvotes: data.hasDownvoted 
+                  ? [...(r.downvotes || []), currentUser.id] 
+                  : (r.downvotes || []).filter(uid => uid !== currentUser.id),
+                upvotes: data.hasDownvoted
+                  ? (r.upvotes || []).filter(uid => uid !== currentUser.id)
+                  : r.upvotes
+              };
+            }
+            return r;
+          });
+          return { ...prev, replies: newReplies };
+        });
+      }
+    } catch (error) {
+      console.error("Failed to downvote reply", error);
     }
   };
 
@@ -252,14 +314,16 @@ function DoubtDetail() {
   }
 
   const hasUpvotedDoubt = currentUser && (doubt.upvotes || []).includes(currentUser?.id);
+  const hasDownvotedDoubt = currentUser && (doubt.downvotes || []).includes(currentUser?.id);
+  const doubtNetScore = (doubt.upvotes || []).length - (doubt.downvotes || []).length;
   const topLevelReplies = (doubt.replies || []).filter(r => r && !r.parentReply);
   const nestedReplies = (doubt.replies || []).filter(r => r && r.parentReply);
 
   topLevelReplies.sort((a, b) => {
     if (a.isAccepted) return -1;
     if (b.isAccepted) return 1;
-    const aVotes = (a.upvotes || []).length;
-    const bVotes = (b.upvotes || []).length;
+    const aVotes = (a.upvotes || []).length - (a.downvotes || []).length;
+    const bVotes = (b.upvotes || []).length - (b.downvotes || []).length;
     if (bVotes !== aVotes) return bVotes - aVotes;
     
     const aDate = a.createdAt ? new Date(a.createdAt) : new Date();
@@ -376,11 +440,11 @@ function DoubtDetail() {
 
           <div className="mt-8 flex items-center gap-6">
             <div className="flex items-center gap-3 rounded-full bg-white/[0.03] border border-white/5 px-1 py-1">
-              <button onClick={handleUpvoteDoubt} className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${hasUpvotedDoubt ? 'bg-orange-500/20 text-orange-500' : 'text-orange-500 hover:bg-white/5'}`}>
+              <button onClick={handleUpvoteDoubt} className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${hasUpvotedDoubt ? 'bg-orange-500/20 text-orange-500' : 'text-slate-500 hover:bg-white/5'}`}>
                 <ArrowUp size={16} strokeWidth={3} />
               </button>
-              <span className="text-sm font-bold text-white">{(doubt.upvotes || []).length}</span>
-              <button onClick={handleUpvoteDoubt} className="flex h-7 w-7 items-center justify-center rounded-full text-slate-500 hover:bg-white/5 transition-colors">
+              <span className="text-sm font-bold text-white">{doubtNetScore}</span>
+              <button onClick={handleDownvoteDoubt} className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${hasDownvotedDoubt ? 'bg-blue-500/20 text-blue-500' : 'text-slate-500 hover:bg-white/5'}`}>
                 <ArrowDown size={16} strokeWidth={3} />
               </button>
             </div>
@@ -415,7 +479,9 @@ function DoubtDetail() {
               currentUser={currentUser}
               nestedReplies={nestedReplies.filter(r => r.parentReply?._id === reply._id)}
               onUpvote={() => handleUpvoteReply(reply._id)}
+              onDownvote={() => handleDownvoteReply(reply._id)}
               onNestedUpvote={(nestedId) => handleUpvoteReply(nestedId)}
+              onNestedDownvote={(nestedId) => handleDownvoteReply(nestedId)}
               onAccept={() => handleAcceptAnswer(reply._id)}
               onDelete={() => handleDeleteReply(reply._id)}
               onReplyClick={() => {
@@ -478,8 +544,8 @@ function DoubtDetail() {
               <span className="font-semibold text-white">{doubt.views || 0}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Upvotes</span>
-              <span className="font-semibold text-white">{(doubt.upvotes || []).length}</span>
+              <span className="text-slate-400">Net Score</span>
+              <span className="font-semibold text-white">{doubtNetScore}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Answers</span>
@@ -547,8 +613,10 @@ function DoubtDetail() {
   );
 }
 
-function ReplyItem({ reply, isDoubtAuthor, currentUser, nestedReplies, onUpvote, onNestedUpvote, onAccept, onReplyClick, onShare, onDelete, getAvatarUrl }) {
+function ReplyItem({ reply, isDoubtAuthor, currentUser, nestedReplies, onUpvote, onDownvote, onNestedUpvote, onNestedDownvote, onAccept, onReplyClick, onShare, onDelete, getAvatarUrl }) {
   const hasUpvoted = currentUser && (reply.upvotes || []).includes(currentUser.id);
+  const hasDownvoted = currentUser && (reply.downvotes || []).includes(currentUser.id);
+  const replyNetScore = (reply.upvotes || []).length - (reply.downvotes || []).length;
   const [showMenu, setShowMenu] = useState(false);
 
   return (
@@ -559,8 +627,8 @@ function ReplyItem({ reply, isDoubtAuthor, currentUser, nestedReplies, onUpvote,
         <button onClick={onUpvote} className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${hasUpvoted ? 'text-orange-500 bg-orange-500/10' : 'text-slate-500 hover:bg-white/5'}`}>
           <ArrowUp size={18} strokeWidth={3} />
         </button>
-        <span className="text-sm font-bold text-white">{(reply.upvotes || []).length}</span>
-        <button onClick={onUpvote} className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-white/5 transition-colors">
+        <span className="text-sm font-bold text-white">{replyNetScore}</span>
+        <button onClick={onDownvote} className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${hasDownvoted ? 'text-blue-500 bg-blue-500/10' : 'text-slate-500 hover:bg-white/5'}`}>
           <ArrowDown size={18} strokeWidth={3} />
         </button>
       </div>
@@ -622,8 +690,11 @@ function ReplyItem({ reply, isDoubtAuthor, currentUser, nestedReplies, onUpvote,
 
         {/* Actions */}
         <div className="mt-4 flex items-center gap-4">
-          <button onClick={onUpvote} className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-            <ArrowUp size={14} /> {(reply.upvotes || []).length}
+          <button onClick={onUpvote} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${hasUpvoted ? 'text-orange-500' : 'text-slate-400 hover:text-white'}`}>
+            <ArrowUp size={14} /> {replyNetScore}
+          </button>
+          <button onClick={onDownvote} className={`flex items-center gap-1.5 text-xs font-semibold transition-colors ${hasDownvoted ? 'text-blue-500' : 'text-slate-400 hover:text-white'}`}>
+            <ArrowDown size={14} />
           </button>
           <button onClick={onReplyClick} className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
             <MessageSquare size={14} /> Reply
@@ -647,11 +718,11 @@ function ReplyItem({ reply, isDoubtAuthor, currentUser, nestedReplies, onUpvote,
                 {/* Nested Vote */}
                 <div className="flex flex-col items-center gap-1 shrink-0">
                   <button onClick={() => onNestedUpvote(nested._id)} className={`rounded-full p-0.5 transition-colors ${currentUser && (nested.upvotes || []).includes(currentUser.id) ? 'text-orange-500 bg-orange-500/10' : 'text-slate-500 hover:bg-white/5'}`}>
-                    <ArrowUp size={14} strokeWidth={3} />
+                    <ArrowUp size={12} strokeWidth={3} />
                   </button>
-                  <span className="text-[10px] font-bold text-white">{(nested.upvotes || []).length}</span>
-                  <button onClick={() => onNestedUpvote(nested._id)} className="text-slate-500 hover:bg-white/5 rounded-full p-0.5">
-                    <ArrowDown size={14} strokeWidth={3} />
+                  <span className="text-[10px] font-bold text-white">{(nested.upvotes || []).length - (nested.downvotes || []).length}</span>
+                  <button onClick={() => onNestedDownvote(nested._id)} className={`rounded-full p-0.5 transition-colors ${currentUser && (nested.downvotes || []).includes(currentUser.id) ? 'text-blue-500 bg-blue-500/10' : 'text-slate-500 hover:bg-white/5'}`}>
+                    <ArrowDown size={12} strokeWidth={3} />
                   </button>
                 </div>
                 

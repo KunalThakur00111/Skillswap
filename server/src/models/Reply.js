@@ -27,6 +27,10 @@ const replySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   }],
+  downvotes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  }],
   isAccepted: {
     type: Boolean,
     default: false,

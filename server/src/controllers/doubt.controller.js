@@ -71,7 +71,7 @@ export const getDoubts = async (req, res) => {
 
         if (isAggregateSort) {
             switch (sort) {
-                case "most_upvoted": sortOption = { upvoteCount: -1, createdAt: -1 }; break;
+                case "most_upvoted": sortOption = { netScore: -1, createdAt: -1 }; break;
                 case "most_replied": sortOption = { replyCount: -1, createdAt: -1 }; break;
                 case "most_viewed": sortOption = { viewCount: -1, createdAt: -1 }; break;
                 case "trending": sortOption = { viewCount: -1, createdAt: -1 }; break;
@@ -81,6 +81,13 @@ export const getDoubts = async (req, res) => {
                 { $match: query },
                 { $addFields: { 
                     upvoteCount: { $size: { $ifNull: ["$upvotes", []] } },
+                    downvoteCount: { $size: { $ifNull: ["$downvotes", []] } },
+                    netScore: {
+                        $subtract: [
+                            { $size: { $ifNull: ["$upvotes", []] } },
+                            { $size: { $ifNull: ["$downvotes", []] } }
+                        ]
+                    },
                     replyCount: { $size: { $ifNull: ["$replies", []] } },
                     viewCount: { $size: { $ifNull: ["$viewers", []] } }
                 }},
@@ -238,10 +245,39 @@ export const upvoteDoubt = async (req, res) => {
             doubt.upvotes = doubt.upvotes.filter(id => id.toString() !== req.user._id.toString());
         } else {
             doubt.upvotes.push(req.user._id);
+            // Remove from downvotes if mutually exclusive
+            doubt.downvotes = doubt.downvotes.filter(id => id.toString() !== req.user._id.toString());
         }
 
         await doubt.save();
-        res.status(200).json({ success: true, upvotes: doubt.upvotes.length, hasUpvoted: !hasUpvoted });
+        res.status(200).json({ success: true, upvotes: doubt.upvotes.length, downvotes: doubt.downvotes.length, hasUpvoted: !hasUpvoted });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Toggle downvote
+export const downvoteDoubt = async (req, res) => {
+    try {
+        const doubt = await Doubt.findById(req.params.id);
+        if (!doubt || doubt.isDeleted) return res.status(404).json({ success: false, message: "Doubt not found" });
+
+        if (doubt.author.toString() === req.user._id.toString()) {
+            return res.status(400).json({ success: false, message: "You cannot downvote your own doubt" });
+        }
+
+        const hasDownvoted = doubt.downvotes.includes(req.user._id);
+
+        if (hasDownvoted) {
+            doubt.downvotes = doubt.downvotes.filter(id => id.toString() !== req.user._id.toString());
+        } else {
+            doubt.downvotes.push(req.user._id);
+            // Remove from upvotes if mutually exclusive
+            doubt.upvotes = doubt.upvotes.filter(id => id.toString() !== req.user._id.toString());
+        }
+
+        await doubt.save();
+        res.status(200).json({ success: true, upvotes: doubt.upvotes.length, downvotes: doubt.downvotes.length, hasDownvoted: !hasDownvoted });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

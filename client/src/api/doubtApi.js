@@ -17,12 +17,20 @@ export const doubtApi = {
         return await axiosClient.put(`/doubts/${id}/upvote`);
     },
     
+    downvoteDoubt: async (id) => {
+        return await axiosClient.put(`/doubts/${id}/downvote`);
+    },
+    
     addReply: async (doubtId, data) => {
         return await axiosClient.post(`/doubts/${doubtId}/reply`, data);
     },
     
     upvoteReply: async (replyId) => {
-        return await axiosClient.put(`/doubts/reply/${replyId}/upvote`);
+        return await axiosClient.put(`/doubts/replies/${replyId}/upvote`);
+    },
+    
+    downvoteReply: async (replyId) => {
+        return await axiosClient.put(`/doubts/replies/${replyId}/downvote`);
     },
     
     acceptAnswer: async (doubtId, replyId) => {

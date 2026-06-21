@@ -117,10 +117,52 @@ export const upvoteReply = async (req, res) => {
         } else {
             reply.upvotes.push(req.user._id);
             await User.findByIdAndUpdate(reply.author, { $inc: { reputation: 5 } });
+            
+            // Remove from downvotes if mutually exclusive
+            const hasDownvoted = reply.downvotes.includes(req.user._id);
+            if (hasDownvoted) {
+                reply.downvotes = reply.downvotes.filter(id => id.toString() !== req.user._id.toString());
+                // Restore the deducted downvote reputation penalty (-2)
+                await User.findByIdAndUpdate(reply.author, { $inc: { reputation: 2 } });
+            }
         }
 
         await reply.save();
-        res.status(200).json({ success: true, upvotes: reply.upvotes.length, hasUpvoted: !hasUpvoted });
+        res.status(200).json({ success: true, upvotes: reply.upvotes.length, downvotes: reply.downvotes.length, hasUpvoted: !hasUpvoted });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const downvoteReply = async (req, res) => {
+    try {
+        const reply = await Reply.findById(req.params.id);
+        if (!reply || reply.isDeleted) return res.status(404).json({ success: false, message: "Reply not found" });
+
+        if (reply.author.toString() === req.user._id.toString()) {
+            return res.status(400).json({ success: false, message: "You cannot downvote your own reply" });
+        }
+
+        const hasDownvoted = reply.downvotes.includes(req.user._id);
+
+        if (hasDownvoted) {
+            reply.downvotes = reply.downvotes.filter(id => id.toString() !== req.user._id.toString());
+            await User.findByIdAndUpdate(reply.author, { $inc: { reputation: 2 } });
+        } else {
+            reply.downvotes.push(req.user._id);
+            await User.findByIdAndUpdate(reply.author, { $inc: { reputation: -2 } });
+
+            // Remove from upvotes if mutually exclusive
+            const hasUpvoted = reply.upvotes.includes(req.user._id);
+            if (hasUpvoted) {
+                reply.upvotes = reply.upvotes.filter(id => id.toString() !== req.user._id.toString());
+                // Remove the upvote reputation bonus (+5)
+                await User.findByIdAndUpdate(reply.author, { $inc: { reputation: -5 } });
+            }
+        }
+
+        await reply.save();
+        res.status(200).json({ success: true, upvotes: reply.upvotes.length, downvotes: reply.downvotes.length, hasDownvoted: !hasDownvoted });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
