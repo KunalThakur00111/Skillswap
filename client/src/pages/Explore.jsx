@@ -31,7 +31,9 @@ function Explore() {
       limit: 12
   });
 
-  const mentors = response?.data || [];
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUserId = storedUser.id || storedUser._id;
+  const mentors = (response?.data || []).filter(m => m._id !== currentUserId);
   const meta = response?.meta || { totalPages: 1, page: 1 };
 
   return (

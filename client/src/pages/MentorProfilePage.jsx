@@ -52,6 +52,18 @@ function MentorProfilePage() {
     );
   }
 
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const isSelf = user.id === mentor._id || user._id === mentor._id;
+
+  if (isSelf) {
+    return (
+      <main className="flex min-h-[50vh] flex-col items-center justify-center px-4 text-center">
+        <p className="text-xl font-bold text-red-400">You cannot view your own mentor profile.</p>
+        <Link to="/dashboard" className="mt-4 text-blue-400 hover:underline">← Back to Dashboard</Link>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-6xl px-5 py-12 lg:px-10">
       <Link to="/explore" className="mb-8 inline-block text-sm font-bold text-slate-400 hover:text-white transition-colors">

@@ -19,7 +19,12 @@ function Home() {
         if (statsData.success) setStats(statsData.stats);
 
         const mentorsData = await apiRequest("/public/mentors/top");
-        if (mentorsData.success) setTopMentors(mentorsData.mentors);
+        if (mentorsData.success) {
+          const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+          const currentUserId = storedUser.id || storedUser._id;
+          const filteredMentors = mentorsData.mentors.filter(m => m._id !== currentUserId);
+          setTopMentors(filteredMentors);
+        }
       } catch (err) {
         console.error("Failed to fetch public data:", err);
       }

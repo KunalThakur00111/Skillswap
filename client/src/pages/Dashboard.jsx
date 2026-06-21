@@ -46,7 +46,10 @@ function Dashboard() {
       setUser(profileData.user);
       setSessions(sessionsData.sessions || []);
       setTransactions(transactionsData.transactions || []);
-      setRecommendedMentors(topMentorsData.mentors || []);
+      
+      const userId = profileData.user._id || profileData.user.id;
+      const filteredMentors = (topMentorsData.mentors || []).filter(m => m._id !== userId);
+      setRecommendedMentors(filteredMentors);
 
       const existingUser = JSON.parse(localStorage.getItem("user") || "{}");
 
