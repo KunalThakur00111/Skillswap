@@ -85,8 +85,8 @@ function MentorCalendar() {
     }
   };
 
-  const upcomingSessions = sessions.filter(s => ["scheduled", "live"].includes(s.status));
-  const pastSessions = sessions.filter(s => !["scheduled", "live", "pending"].includes(s.status));
+  const upcomingSessions = sessions.filter(s => ["accepted", "scheduled", "live"].includes(s.status));
+  const pastSessions = sessions.filter(s => !["accepted", "scheduled", "live", "pending"].includes(s.status));
   const pendingRequests = sessions.filter(s => s.status === "pending");
 
   const formatTime = (isoString) => {
@@ -140,7 +140,7 @@ function MentorCalendar() {
             </button>
           </div>
         )}
-        {session.status === "scheduled" && !session.meetingLink && (
+        {(session.status === "scheduled" || session.status === "accepted") && !session.meetingLink && (
            <button 
              onClick={() => handleAddLink(session._id)}
              disabled={actionLoading === session._id}

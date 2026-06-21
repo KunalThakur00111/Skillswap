@@ -30,8 +30,8 @@ function LearnerCalendar() {
     fetchSessions();
   }, [token]);
 
-  const upcomingSessions = sessions.filter(s => ["scheduled", "live"].includes(s.status));
-  const pastSessions = sessions.filter(s => !["scheduled", "live", "pending"].includes(s.status));
+  const upcomingSessions = sessions.filter(s => ["accepted", "scheduled", "live"].includes(s.status));
+  const pastSessions = sessions.filter(s => !["accepted", "scheduled", "live", "pending"].includes(s.status));
   const pendingRequests = sessions.filter(s => s.status === "pending");
 
   const formatTime = (isoString) => {

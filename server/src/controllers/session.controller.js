@@ -204,7 +204,7 @@ export const acceptSession = async(req, res) => {
             learner.lockedCredits = (learner.lockedCredits || 0) + sessionCost;
             await learner.save({ session: mongoSession });
 
-            session.status = "scheduled";
+            session.status = "accepted";
             session.acceptedAt = new Date();
             await session.save({ session: mongoSession });
 
