@@ -122,24 +122,7 @@ function MentorCalendar() {
         </div>
       </div>
       <div className="flex w-full md:w-auto flex-col gap-2">
-        {session.status === "pending" && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleReject(session._id)}
-              disabled={actionLoading === session._id}
-              className="rounded-xl border border-red-500/30 px-4 py-2 text-sm font-bold text-red-400 hover:bg-red-500/10 disabled:opacity-50"
-            >
-              Reject
-            </button>
-            <button
-              onClick={() => handleAccept(session._id)}
-              disabled={actionLoading === session._id}
-              className="rounded-xl bg-purple-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-purple-500/20 hover:bg-purple-600 disabled:opacity-50"
-            >
-              {actionLoading === session._id ? "Accepting..." : "Accept Slot"}
-            </button>
-          </div>
-        )}
+
         {(session.status === "scheduled" || session.status === "accepted") && !session.meetingLink && (
            <button 
              onClick={() => handleAddLink(session._id)}
@@ -204,8 +187,38 @@ function MentorCalendar() {
               <div className="space-y-4">
                 {pendingRequests.map(s => (
                   <div key={s._id} className="rounded-xl border border-white/10 bg-slate-900 p-4">
-                     <SessionCard session={s} type="pending" />
-                     <p className="mt-3 text-sm italic text-slate-400">"{s.message}"</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-bold text-lg">{s.skill}</p>
+                      <StatusBadge status={s.status} />
+                    </div>
+                    <p className="text-sm text-slate-400 mt-3 flex items-center gap-2">
+                      <span className="flex items-center gap-1">
+                        <UserAvatar name={s.learner?.name} size="xs" />
+                        {s.learner?.name}
+                      </span>
+                    </p>
+                    <p className="text-xs text-slate-400 mt-2">
+                      {formatDate(s.startTime)} • {formatTime(s.startTime)} - {formatTime(s.endTime)}
+                    </p>
+                    {s.message && (
+                      <p className="mt-3 text-sm italic text-slate-400 border-t border-white/10 pt-3">"{s.message}"</p>
+                    )}
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={() => handleReject(s._id)}
+                        disabled={actionLoading === s._id}
+                        className="flex-1 rounded-xl border border-red-500/30 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleAccept(s._id)}
+                        disabled={actionLoading === s._id}
+                        className="flex-1 rounded-xl bg-purple-500 py-2.5 text-xs font-bold text-white shadow-lg shadow-purple-500/20 hover:bg-purple-600 disabled:opacity-50"
+                      >
+                        {actionLoading === s._id ? "Accepting..." : "Accept"}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
