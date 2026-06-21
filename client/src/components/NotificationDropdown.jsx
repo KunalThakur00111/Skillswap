@@ -1,20 +1,27 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, Check, CheckCircle2, ChevronRight } from "lucide-react";
-import { useSocket } from "../context/SocketContext";
+import { Bell, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { 
+    useNotifications, 
+    useUnreadCount, 
+    useMarkAsRead, 
+    useMarkAllAsRead 
+} from "../hooks/queries/useNotifications";
 
 function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   
-  const { 
-    unreadCount, 
-    notifications, 
-    markAsRead, 
-    markAllAsRead 
-  } = useSocket();
+  const { data: unreadData } = useUnreadCount();
+  const unreadCount = unreadData?.count || 0;
+
+  const { data: response, isLoading } = useNotifications({ page: 1, limit: 10 });
+  const notifications = response?.data || [];
+
+  const markAsReadMutation = useMarkAsRead();
+  const markAllAsReadMutation = useMarkAllAsRead();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -29,7 +36,7 @@ function NotificationDropdown() {
 
   const handleNotificationClick = async (notification) => {
     if (!notification.isRead) {
-      await markAsRead(notification._id);
+      markAsReadMutation.mutate(notification._id);
     }
     setIsOpen(false);
     
@@ -43,6 +50,11 @@ function NotificationDropdown() {
     } else {
       navigate("/dashboard");
     }
+  };
+
+  const handleMarkAllRead = (e) => {
+    e.stopPropagation();
+    markAllAsReadMutation.mutate();
   };
 
   const recentNotifications = notifications.slice(0, 5);
@@ -67,20 +79,23 @@ function NotificationDropdown() {
             <h3 className="font-bold text-white">Notifications</h3>
             {unreadCount > 0 && (
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  markAllAsRead();
-                }}
-                className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300"
+                onClick={handleMarkAllRead}
+                disabled={markAllAsReadMutation.isPending}
+                className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 disabled:opacity-50"
               >
-                <CheckCircle2 size={14} />
+                {markAllAsReadMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                 Mark all read
               </button>
             )}
           </div>
 
           <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
-            {recentNotifications.length === 0 ? (
+            {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <Loader2 size={24} className="animate-spin text-blue-500 mb-2" />
+                    <p className="text-sm text-slate-400">Loading...</p>
+                </div>
+            ) : recentNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.02] text-slate-500 mb-3">
                   <Bell size={24} />
