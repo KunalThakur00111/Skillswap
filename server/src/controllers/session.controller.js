@@ -144,7 +144,7 @@ export const getMySessions = async(req, res) => {
 
         res.status(200).json({
             success: true,
-            data: sessions,
+            sessions: sessions,
             meta: {
                 total,
                 page,
