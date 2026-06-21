@@ -220,7 +220,7 @@ function MentorCalendar() {
                         disabled={actionLoading === s._id}
                         className="flex-1 rounded-xl border border-red-500/30 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/10 disabled:opacity-50"
                       >
-                        Reject
+                        {actionLoading === s._id ? "Rejecting..." : "Reject"}
                       </button>
                       <button
                         onClick={() => handleAccept(s._id)}
