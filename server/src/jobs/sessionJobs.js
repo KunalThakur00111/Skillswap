@@ -160,6 +160,111 @@ const startSessionJobs = () => {
                     relatedEntityType: "Session"
                 });
             }
+
+            // 4. Auto-cancel accepted sessions never scheduled (reached startTime)
+            const acceptedStuckSessions = await Session.find({
+                status: 'accepted',
+                startTime: { $lt: now }
+            });
+
+            for (const session of acceptedStuckSessions) {
+                const mongoSession = await mongoose.startSession();
+                try {
+                    mongoSession.startTransaction();
+
+                    const learner = await User.findById(session.learner).session(mongoSession);
+                    if (learner && learner.lockedCredits >= session.creditCost) {
+                        learner.lockedCredits -= session.creditCost;
+                        learner.credits += session.creditCost;
+                        await learner.save({ session: mongoSession });
+                    }
+
+                    session.status = 'cancelled';
+                    session.cancelledAt = new Date();
+                    await session.save({ session: mongoSession });
+
+                    await createNotification({
+                        recipient: session.learner, type: "session_cancelled", title: "Session Auto-Cancelled",
+                        message: `The mentor never scheduled the session. Your ${session.creditCost} credits have been refunded.`,
+                        relatedEntity: session._id, relatedEntityType: "Session"
+                    });
+                    await createNotification({
+                        recipient: session.mentor, type: "session_cancelled", title: "Session Auto-Cancelled",
+                        message: `You did not schedule the session before its start time. It has been cancelled.`,
+                        relatedEntity: session._id, relatedEntityType: "Session"
+                    });
+
+                    await mongoSession.commitTransaction();
+                } catch (err) {
+                    await mongoSession.abortTransaction();
+                    console.error("Auto-cancel accepted error", err);
+                } finally {
+                    mongoSession.endSession();
+                }
+            }
+
+            // 5. Auto-resolve scheduled sessions never started (endTime + 24h)
+            const resolveTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const scheduledStuckSessions = await Session.find({
+                status: 'scheduled',
+                endTime: { $lt: resolveTime }
+            });
+
+            for (const session of scheduledStuckSessions) {
+                const mongoSession = await mongoose.startSession();
+                try {
+                    mongoSession.startTransaction();
+
+                    const learner = await User.findById(session.learner).session(mongoSession);
+                    if (learner && learner.lockedCredits >= session.creditCost) {
+                        learner.lockedCredits -= session.creditCost;
+                        learner.credits += session.creditCost;
+                        await learner.save({ session: mongoSession });
+                    }
+
+                    session.status = 'no_show';
+                    session.noShowBy = 'both';
+                    await session.save({ session: mongoSession });
+
+                    await createNotification({
+                        recipient: session.learner, type: "session_missed", title: "Session Missed",
+                        message: `The scheduled session was never started. Your ${session.creditCost} credits have been refunded.`,
+                        relatedEntity: session._id, relatedEntityType: "Session"
+                    });
+                    await createNotification({
+                        recipient: session.mentor, type: "session_missed", title: "Session Missed",
+                        message: `The scheduled session was never started. It has been marked as a no-show.`,
+                        relatedEntity: session._id, relatedEntityType: "Session"
+                    });
+
+                    await mongoSession.commitTransaction();
+                } catch (err) {
+                    await mongoSession.abortTransaction();
+                    console.error("Auto-resolve scheduled error", err);
+                } finally {
+                    mongoSession.endSession();
+                }
+            }
+
+            // 6. Auto-complete forgotten live sessions (endTime + 2h)
+            const autoCompleteTime = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+            const liveStuckSessions = await Session.find({
+                status: 'live',
+                endTime: { $lt: autoCompleteTime }
+            });
+
+            for (const session of liveStuckSessions) {
+                session.status = 'completed_pending_confirmation';
+                session.completedAt = new Date();
+                await session.save();
+
+                await createNotification({
+                    recipient: session.learner, type: "session_action_required", title: "Please Confirm Session",
+                    message: `Your session was marked completed automatically. Please confirm it to release credits to the mentor.`,
+                    relatedEntity: session._id, relatedEntityType: "Session"
+                });
+            }
+
         } catch (error) {
             console.error('Error in auto-expire job:', error);
         }
