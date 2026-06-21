@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { Search, MessageSquare, ArrowUp, CheckCircle, Eye } from "lucide-react";
+import { Search, MessageSquare, ArrowUp, CheckCircle, Eye, X } from "lucide-react";
 import { useDoubts } from "../hooks/queries/useDoubts";
 import CommunitySidebar from "../components/CommunitySidebar";
 import DoubtCardSkeleton from "../components/skeletons/DoubtCardSkeleton";
@@ -16,7 +16,7 @@ const SORT_OPTIONS = [
 ];
 
 function Community({ isBookmarksPage = false }) {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   // URL derived state
   const tagFilter = searchParams.get("tag") || "";
   const sortFilter = searchParams.get("sort") || "newest";
@@ -25,6 +25,13 @@ function Community({ isBookmarksPage = false }) {
   const [search, setSearch] = useState(searchFilter);
   const [sort, setSort] = useState(sortFilter);
   const [page, setPage] = useState(1);
+
+  const clearFilter = (type) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete(type);
+    setSearchParams(newParams);
+    if (type === "search") setSearch("");
+  };
 
   const { data: response, isLoading: loading, error, isError } = useDoubts({
     page,
@@ -79,8 +86,22 @@ function Community({ isBookmarksPage = false }) {
         {(tagFilter || searchFilter) && (
           <div className="mb-6 flex items-center gap-2">
             <span className="text-sm font-bold text-slate-400">Filtering by:</span>
-            {tagFilter && <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400">Tag: {tagFilter}</span>}
-            {searchFilter && <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400">Search: {searchFilter}</span>}
+            {tagFilter && (
+              <span className="flex items-center gap-1 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400">
+                Tag: {tagFilter}
+                <button onClick={() => clearFilter("tag")} className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 text-blue-400 transition-colors">
+                  <X size={12} />
+                </button>
+              </span>
+            )}
+            {searchFilter && (
+              <span className="flex items-center gap-1 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400">
+                Search: {searchFilter}
+                <button onClick={() => clearFilter("search")} className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 text-blue-400 transition-colors">
+                  <X size={12} />
+                </button>
+              </span>
+            )}
           </div>
         )}
 
