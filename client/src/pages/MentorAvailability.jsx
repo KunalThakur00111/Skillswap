@@ -73,6 +73,13 @@ function MentorAvailability() {
       setError("");
       setMessage("");
 
+      // Validate times
+      for (const day of availability.schedule) {
+        if (day.startTime >= day.endTime) {
+          throw new Error(`Invalid time range on ${DAYS_OF_WEEK[day.dayOfWeek]}: Start time must be before end time.`);
+        }
+      }
+
       const data = await apiRequest("/availability/me", {
         method: "PUT",
         token,
