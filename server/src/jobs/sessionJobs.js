@@ -74,6 +74,9 @@ const startSessionJobs = () => {
                 try {
                     mongoSession.startTransaction();
 
+                    const activeSession = await Session.findById(session._id).session(mongoSession);
+                    if (activeSession.status !== 'completed_pending_confirmation') throw new Error('Already processed');
+
                     const learner = await User.findById(session.learner).session(mongoSession);
                     if (learner && learner.lockedCredits >= session.creditCost) {
                         learner.lockedCredits -= session.creditCost;
@@ -172,6 +175,9 @@ const startSessionJobs = () => {
                 try {
                     mongoSession.startTransaction();
 
+                    const activeSession = await Session.findById(session._id).session(mongoSession);
+                    if (activeSession.status !== 'accepted') throw new Error('Already processed');
+
                     const learner = await User.findById(session.learner).session(mongoSession);
                     if (learner && learner.lockedCredits >= session.creditCost) {
                         learner.lockedCredits -= session.creditCost;
@@ -214,6 +220,9 @@ const startSessionJobs = () => {
                 const mongoSession = await mongoose.startSession();
                 try {
                     mongoSession.startTransaction();
+
+                    const activeSession = await Session.findById(session._id).session(mongoSession);
+                    if (activeSession.status !== 'scheduled') throw new Error('Already processed');
 
                     const learner = await User.findById(session.learner).session(mongoSession);
                     if (learner && learner.lockedCredits >= session.creditCost) {

@@ -630,20 +630,36 @@ export const disputeSession = async (req, res) => {
 };
 
 export const reportNoShow = async (req, res) => {
+    const mongoSession = await mongoose.startSession();
     try {
         const { noShowBy } = req.body; // 'mentor' or 'learner'
-        const session = await Session.findById(req.params.id);
+        let updatedSession;
 
-        if (!session) return res.status(404).json({ success: false, message: "Session not found" });
-        if (!["scheduled", "live"].includes(session.status)) return res.status(400).json({ success: false, message: "Invalid status for no-show" });
+        await mongoSession.withTransaction(async () => {
+            const session = await Session.findById(req.params.id).session(mongoSession);
 
-        session.status = "no_show";
-        session.noShowBy = noShowBy;
-        await session.save();
+            if (!session) throw new Error("Session not found");
+            if (!["scheduled", "live"].includes(session.status)) throw new Error("Invalid status for no-show");
 
-        res.status(200).json({ success: true, session });
+            // Refund escrow credits
+            const learner = await User.findById(session.learner).session(mongoSession);
+            if (learner && learner.lockedCredits >= session.creditCost) {
+                learner.lockedCredits -= session.creditCost;
+                learner.credits += session.creditCost;
+                await learner.save({ session: mongoSession });
+            }
+
+            session.status = "no_show";
+            session.noShowBy = noShowBy;
+            await session.save({ session: mongoSession });
+            updatedSession = session;
+        });
+
+        res.status(200).json({ success: true, session: updatedSession });
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(400).json({ success: false, message: error.message });
+    } finally {
+        await mongoSession.endSession();
     }
 };
 
