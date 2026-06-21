@@ -35,11 +35,29 @@ function Explore() {
   const currentUserId = storedUser.id || storedUser._id;
   
   console.log("CURRENT USER", currentUserId);
-  console.log("MENTORS BEFORE FILTER", response?.data);
+
+  const rawMentors = response?.data || [];
   
-  const mentors = (response?.data || []).filter(m => m._id !== currentUserId);
+  console.log(
+    "MENTORS",
+    rawMentors.map(m => ({
+      id: m._id,
+      name: m.name,
+      email: m.email
+    }))
+  );
+
+  const filteredMentors = rawMentors.filter(m => m._id !== currentUserId);
+
+  console.log(
+    "FILTERED",
+    filteredMentors.map(m => ({
+      id: m._id,
+      name: m.name
+    }))
+  );
   
-  console.log("MENTORS AFTER FILTER", mentors);
+  const mentors = filteredMentors;
   
   const meta = response?.meta || { totalPages: 1, page: 1 };
 

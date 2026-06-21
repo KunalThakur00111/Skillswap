@@ -107,11 +107,21 @@ export const getMentors = async(req, res) => {
             query.rating = { $gte: Number(minRating) };
         }
 
+        console.log("REQ USER", req.user._id.toString());
+
         let mentors = await User.find(query)
             .select(
                 "name email bio avatar teachSkills learnSkills rating totalReviews completedSessions credits reputation createdAt"
             )
             .lean();
+
+        console.log(
+            "RETURNED MENTORS",
+            mentors.map(m => ({
+                id: m._id.toString(),
+                name: m.name
+            }))
+        );
 
         // Calculate Ranking Score
         // Formula: (Rating * 10) + (Reputation * 5) + (Completed Sessions * 2)
