@@ -33,32 +33,7 @@ function Explore() {
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentUserId = storedUser.id || storedUser._id;
-  
-  console.log("CURRENT USER", currentUserId);
-
-  const rawMentors = response?.data || [];
-  
-  console.log(
-    "MENTORS",
-    rawMentors.map(m => ({
-      id: m._id,
-      name: m.name,
-      email: m.email
-    }))
-  );
-
-  const filteredMentors = rawMentors.filter(m => m._id !== currentUserId);
-
-  console.log(
-    "FILTERED",
-    filteredMentors.map(m => ({
-      id: m._id,
-      name: m.name
-    }))
-  );
-  
-  const mentors = filteredMentors;
-  
+  const mentors = (response?.data || []).filter(m => m._id !== currentUserId);
   const meta = response?.meta || { totalPages: 1, page: 1 };
 
   return (
