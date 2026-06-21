@@ -126,29 +126,48 @@ function MentorProfilePage() {
           <div className="sticky top-24 rounded-[2rem] border border-blue-500/20 bg-[#0B1020] shadow-2xl p-6">
              <h2 className="text-2xl font-black mb-6">Book a Session</h2>
              
-             {bookingSuccess ? (
-               <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 text-center">
-                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20 text-green-400 mb-4">
-                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                 </div>
-                 <h3 className="font-bold text-green-400 mb-2">Request Sent!</h3>
-                 <p className="text-sm text-green-200">{bookingSuccess}</p>
-                 <button onClick={() => setBookingSuccess("")} className="mt-6 rounded-xl bg-green-500/20 px-4 py-2 text-sm font-bold text-green-400 hover:bg-green-500/30">Book Another</button>
-               </div>
-             ) : (
-               token ? (
-                 <BookingWidget 
-                   mentor={mentor} 
-                   onClose={() => {}} 
-                   onSuccess={(msg) => setBookingSuccess(msg)} 
-                 />
-               ) : (
+             {(() => {
+               const user = JSON.parse(localStorage.getItem("user") || "{}");
+               const isSelf = user.id === mentor._id || user._id === mentor._id;
+               
+               if (isSelf) {
+                 return (
+                   <div className="text-center py-8">
+                     <p className="text-slate-400 mb-4 font-bold text-red-400">You cannot book a session with yourself.</p>
+                   </div>
+                 );
+               }
+               
+               if (bookingSuccess) {
+                 return (
+                   <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-6 text-center">
+                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20 text-green-400 mb-4">
+                       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                     </div>
+                     <h3 className="font-bold text-green-400 mb-2">Request Sent!</h3>
+                     <p className="text-sm text-green-200">{bookingSuccess}</p>
+                     <button onClick={() => setBookingSuccess("")} className="mt-6 rounded-xl bg-green-500/20 px-4 py-2 text-sm font-bold text-green-400 hover:bg-green-500/30">Book Another</button>
+                   </div>
+                 );
+               }
+               
+               if (token) {
+                 return (
+                   <BookingWidget 
+                     mentor={mentor} 
+                     onClose={() => {}} 
+                     onSuccess={(msg) => setBookingSuccess(msg)} 
+                   />
+                 );
+               }
+               
+               return (
                  <div className="text-center py-8">
                    <p className="text-slate-400 mb-4">You must be logged in to book sessions.</p>
                    <Link to="/login" className="rounded-xl bg-blue-500 px-6 py-3 font-bold text-white hover:bg-blue-600">Login to Book</Link>
                  </div>
-               )
-             )}
+               );
+             })()}
           </div>
         </div>
 

@@ -18,10 +18,13 @@ export const requestSession = async(req, res) => {
             });
         }
 
-        if (mentorId === req.user._id.toString()) {
+        const learnerIdStr = req.user._id.toString();
+        const mentorIdStr = String(mentorId);
+
+        if (learnerIdStr === mentorIdStr) {
             return res.status(400).json({
                 success: false,
-                message: "You cannot request a session from yourself"
+                message: "You cannot book a session with yourself."
             });
         }
 
