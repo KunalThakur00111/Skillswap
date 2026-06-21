@@ -76,6 +76,14 @@ export const requestSession = async(req, res) => {
             });
         }
 
+        const isConflict = await checkTimeConflict([req.user._id, mentorId], startTime, endTime);
+        if (isConflict) {
+            return res.status(409).json({
+                success: false,
+                message: "This time slot is no longer available."
+            });
+        }
+
         const session = await Session.create({
             learner: req.user._id,
             mentor: mentorId,
@@ -180,11 +188,11 @@ export const acceptSession = async(req, res) => {
         const sessionCost = session.creditCost || SESSION_CREDIT_COST;
 
         // Conflict Detection
-        const isConflict = await checkTimeConflict(session.mentor, session.startTime, session.endTime, session._id);
+        const isConflict = await checkTimeConflict([session.mentor, session.learner], session.startTime, session.endTime, session._id);
         if (isConflict) {
             return res.status(409).json({
                 success: false,
-                message: "This slot is no longer available. Please reject the request or propose a reschedule."
+                message: "This time slot is no longer available."
             });
         }
 
@@ -475,11 +483,11 @@ export const scheduleSession = async (req, res) => {
         }
 
         // Time Conflict Check
-        const conflict = await checkTimeConflict(req.user._id, startTime, endTime, session._id);
+        const conflict = await checkTimeConflict([session.mentor, session.learner], startTime, endTime, session._id);
         if (conflict) {
             return res.status(409).json({ 
                 success: false, 
-                message: `Scheduling conflict: You already have a session scheduled from ${new Date(conflict.startTime).toLocaleTimeString()} to ${new Date(conflict.endTime).toLocaleTimeString()}` 
+                message: "This time slot is no longer available."
             });
         }
 
