@@ -34,7 +34,7 @@ function MentorCalendar() {
   const handleAccept = async (sessionId) => {
     try {
       setActionLoading(sessionId);
-      await apiRequest(`/sessions/${sessionId}/accept`, { method: "PUT", token });
+      await apiRequest(`/sessions/${sessionId}/accept`, { method: "PATCH", token });
       fetchSessions();
     } catch (err) {
       alert(err.message);
@@ -46,7 +46,7 @@ function MentorCalendar() {
   const handleReject = async (sessionId) => {
     try {
       setActionLoading(sessionId);
-      await apiRequest(`/sessions/${sessionId}/reject`, { method: "PUT", token });
+      await apiRequest(`/sessions/${sessionId}/reject`, { method: "PATCH", token });
       fetchSessions();
     } catch (err) {
       alert(err.message);
@@ -67,7 +67,7 @@ function MentorCalendar() {
       // Wait, in my session controller I only have PUT /sessions/:id/schedule. Let's pass the existing times.
       const session = sessions.find(s => s._id === sessionId);
       await apiRequest(`/sessions/${sessionId}/schedule`, {
-        method: "PUT",
+        method: "PATCH",
         token,
         body: {
           startTime: session.startTime,
