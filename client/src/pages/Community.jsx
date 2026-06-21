@@ -26,11 +26,24 @@ function Community({ isBookmarksPage = false }) {
   const [sort, setSort] = useState(sortFilter);
   const [page, setPage] = useState(1);
 
+  const activeTags = tagFilter ? tagFilter.split(",") : [];
+
   const clearFilter = (type) => {
     const newParams = new URLSearchParams(searchParams);
     newParams.delete(type);
     setSearchParams(newParams);
     if (type === "search") setSearch("");
+  };
+
+  const removeTagFilter = (tagToRemove) => {
+    const newTags = activeTags.filter((t) => t !== tagToRemove);
+    const newParams = new URLSearchParams(searchParams);
+    if (newTags.length > 0) {
+      newParams.set("tag", newTags.join(","));
+    } else {
+      newParams.delete("tag");
+    }
+    setSearchParams(newParams);
   };
 
   const { data: response, isLoading: loading, error, isError } = useDoubts({
@@ -83,17 +96,17 @@ function Community({ isBookmarksPage = false }) {
         </div>
 
         {/* Filters Header (Optional) */}
-        {(tagFilter || searchFilter) && (
-          <div className="mb-6 flex items-center gap-2">
+        {(activeTags.length > 0 || searchFilter) && (
+          <div className="mb-6 flex flex-wrap items-center gap-2">
             <span className="text-sm font-bold text-slate-400">Filtering by:</span>
-            {tagFilter && (
-              <span className="flex items-center gap-1 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400">
-                Tag: {tagFilter}
-                <button onClick={() => clearFilter("tag")} className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 text-blue-400 transition-colors">
+            {activeTags.map((tag) => (
+              <span key={tag} className="flex items-center gap-1 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400">
+                Tag: {tag}
+                <button onClick={() => removeTagFilter(tag)} className="ml-1 rounded-full p-0.5 hover:bg-blue-500/20 text-blue-400 transition-colors">
                   <X size={12} />
                 </button>
               </span>
-            )}
+            ))}
             {searchFilter && (
               <span className="flex items-center gap-1 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-400">
                 Search: {searchFilter}

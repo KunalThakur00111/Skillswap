@@ -60,7 +60,8 @@ export const getDoubts = async (req, res) => {
         }
 
         if (tag) {
-            query.tags = { $regex: new RegExp(tag, 'i') };
+            const tagsArray = tag.split(',').map(t => new RegExp(t.trim(), 'i'));
+            query.tags = { $in: tagsArray };
         }
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
