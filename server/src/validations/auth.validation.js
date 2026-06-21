@@ -3,7 +3,16 @@ import { z } from "zod";
 export const signupSchema = z.object({
     body: z.object({
         name: z.string().min(2, "Name must be at least 2 characters").max(50),
-        email: z.string().email("Invalid email format").endsWith(".edu", "Must be a .edu university email"),
+        email: z.string().email("Invalid email format").refine((val) => {
+            const allowedDomains = process.env.ALLOWED_COLLEGE_DOMAINS
+                ? process.env.ALLOWED_COLLEGE_DOMAINS.split(",").map(d => d.trim())
+                : [".edu"];
+            
+            return allowedDomains.some(domain => {
+                const cleanDomain = domain.startsWith(".") ? domain : `@${domain}`;
+                return val.endsWith(cleanDomain) || val.endsWith(`.${domain}`);
+            });
+        }, "Must use an approved college email domain"),
         password: z.string().min(6, "Password must be at least 6 characters")
     })
 });
