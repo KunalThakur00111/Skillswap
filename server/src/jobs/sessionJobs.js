@@ -126,6 +126,43 @@ const startSessionJobs = () => {
         } catch (error) {
             console.error('Error in session jobs:', error);
         }
+        
+        try {
+            const now = new Date();
+            // 3. Auto-expire pending sessions after 24 hours
+            const expireTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const expiredPendingSessions = await Session.find({
+                status: 'pending',
+                requestedAt: { $lt: expireTime }
+            });
+
+            for (const session of expiredPendingSessions) {
+                session.status = 'expired';
+                await session.save();
+
+                // Notify Learner
+                await createNotification({
+                    recipient: session.learner,
+                    type: "session_expired",
+                    title: "Session Request Expired",
+                    message: "Your session request was not accepted within 24 hours and has expired. The time slot is now open again.",
+                    relatedEntity: session._id,
+                    relatedEntityType: "Session"
+                });
+
+                // Notify Mentor
+                await createNotification({
+                    recipient: session.mentor,
+                    type: "session_expired",
+                    title: "Session Request Expired",
+                    message: "A session request expired because you did not respond within 24 hours.",
+                    relatedEntity: session._id,
+                    relatedEntityType: "Session"
+                });
+            }
+        } catch (error) {
+            console.error('Error in auto-expire job:', error);
+        }
     });
 };
 
