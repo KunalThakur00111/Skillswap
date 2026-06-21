@@ -60,7 +60,7 @@ const userSchema = new mongoose.Schema({
     },
     credits: {
         type: Number,
-        default: 10
+        default: 100
     },
     lockedCredits: {
         type: Number,
