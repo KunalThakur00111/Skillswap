@@ -82,7 +82,7 @@ export const getMentors = async(req, res) => {
         const limit = parseInt(req.query.limit, 10) || 10;
 
         const query = {
-            _id: { $ne: req.user._id },
+            _id: { $ne: req.user._id.toString() },
             isEmailVerified: true,
             isBlocked: false,
             teachSkills: { $exists: true, $ne: [] }

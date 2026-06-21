@@ -33,7 +33,14 @@ function Explore() {
 
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const currentUserId = storedUser.id || storedUser._id;
+  
+  console.log("CURRENT USER", currentUserId);
+  console.log("MENTORS BEFORE FILTER", response?.data);
+  
   const mentors = (response?.data || []).filter(m => m._id !== currentUserId);
+  
+  console.log("MENTORS AFTER FILTER", mentors);
+  
   const meta = response?.meta || { totalPages: 1, page: 1 };
 
   return (
