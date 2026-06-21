@@ -41,7 +41,7 @@ function Dashboard() {
         token
       });
 
-      const topMentorsData = await apiRequest("/public/mentors/top");
+      const topMentorsData = await apiRequest("/public/mentors/top", { token });
 
       setUser(profileData.user);
       setSessions(sessionsData.sessions || []);

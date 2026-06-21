@@ -18,7 +18,8 @@ function Home() {
         const statsData = await apiRequest("/public/stats");
         if (statsData.success) setStats(statsData.stats);
 
-        const mentorsData = await apiRequest("/public/mentors/top");
+        const token = localStorage.getItem("token");
+        const mentorsData = await apiRequest("/public/mentors/top", { token });
         if (mentorsData.success) {
           const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
           const currentUserId = storedUser.id || storedUser._id;

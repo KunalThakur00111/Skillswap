@@ -19,7 +19,7 @@ function MentorProfilePage() {
       try {
         setLoading(true);
         // Using the public endpoint we created
-        const data = await apiRequest(`/public/mentors/${id}`);
+        const data = await apiRequest(`/public/mentors/${id}`, { token });
         setMentor(data.mentor);
         setReviews(data.reviews || []);
       } catch (err) {

@@ -28,11 +28,17 @@ export const getPlatformStats = async (req, res) => {
 // GET /api/public/mentors/top
 export const getTopMentors = async (req, res) => {
     try {
-        const mentors = await User.find({
+        const query = {
             isEmailVerified: true,
             isBlocked: false,
             teachSkills: { $exists: true, $ne: [] }
-        })
+        };
+
+        if (req.user) {
+            query._id = { $ne: req.user._id };
+        }
+
+        const mentors = await User.find(query)
         .select("name avatar teachSkills rating completedSessions reputation bio")
         .sort({ rating: -1, completedSessions: -1, reputation: -1 })
         .limit(6);
@@ -49,6 +55,10 @@ export const getTopMentors = async (req, res) => {
 // GET /api/public/mentors/:id
 export const getMentorProfile = async (req, res) => {
     try {
+        if (req.user && String(req.user._id) === String(req.params.id)) {
+            return res.status(403).json({ success: false, message: "You cannot view your own mentor profile." });
+        }
+
         const mentor = await User.findById(req.params.id)
             .select("name avatar bio teachSkills rating completedSessions reputation credits createdAt");
 

@@ -42,6 +42,31 @@ export const protect = async(req, res, next) => {
     }
 };
 
+export const optionalProtect = async(req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return next();
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.userId).select(
+            "-password -verificationCode -verificationCodeExpires -verificationCodeLastSentAt -passwordResetCode -passwordResetCodeExpires -passwordResetCodeLastSentAt"
+        );
+
+        if (user && !user.isBlocked) {
+            req.user = user;
+        }
+
+        next();
+    } catch (error) {
+        // Ignore token errors for optional routes
+        next();
+    }
+};
+
 export const requireAdmin = (req, res, next) => {
     if (!req.user || req.user.role !== "admin") {
         return res.status(403).json({
