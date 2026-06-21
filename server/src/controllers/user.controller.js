@@ -107,11 +107,15 @@ export const getMentors = async(req, res) => {
             query.rating = { $gte: Number(minRating) };
         }
 
+        console.log("[DIAG] Final MongoDB query:", JSON.stringify(query, null, 2));
+
         let mentors = await User.find(query)
             .select(
                 "name email bio avatar teachSkills learnSkills rating totalReviews completedSessions credits reputation createdAt"
             )
             .lean();
+
+        console.log("[DIAG] Step 6 - Mentors returned by query:", mentors.length);
 
         // Calculate Ranking Score
         // Formula: (Rating * 10) + (Reputation * 5) + (Completed Sessions * 2)
@@ -140,7 +144,7 @@ export const getMentors = async(req, res) => {
         
         const paginatedMentors = mentors.slice(startIndex, endIndex);
 
-        res.status(200).json({
+        const responsePayload = {
             success: true,
             data: paginatedMentors,
             meta: {
@@ -149,8 +153,15 @@ export const getMentors = async(req, res) => {
                 limit,
                 totalPages
             }
-        });
+        };
+
+        console.log("[DIAG] Step 7 - Final response length:", paginatedMentors.length);
+        console.log("[DIAG] Full response payload:", JSON.stringify(responsePayload, null, 2));
+        console.log("========== END DIAGNOSTIC ==========\n");
+
+        res.status(200).json(responsePayload);
     } catch (error) {
+        console.error("[DIAG] getMentors ERROR:", error);
         res.status(500).json({
             success: false,
             message: error.message
