@@ -143,7 +143,7 @@ function MentorCalendar() {
              {actionLoading === session._id ? "Adding..." : "+ Add Meeting Link"}
            </button>
         )}
-        {session.meetingLink && (
+        {session.meetingLink && ["scheduled", "live"].includes(session.status) && (
           <a
             href={session.meetingLink}
             target="_blank"
