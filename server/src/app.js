@@ -18,6 +18,9 @@ import { notFound, errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
 
+// Trust proxy for rate limiting behind a reverse proxy (e.g., Render)
+app.set("trust proxy", 1);
+
 // Security Middleware
 app.use(helmet());
 app.use(

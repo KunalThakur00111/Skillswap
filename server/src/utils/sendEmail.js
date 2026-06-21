@@ -21,7 +21,8 @@ const createTransporter = () => {
         },
         connectionTimeout: 5000,
         greetingTimeout: 5000,
-        socketTimeout: 5000
+        socketTimeout: 5000,
+        family: 4 // Force IPv4 to fix ENETUNREACH on some cloud providers
     });
 };
 
