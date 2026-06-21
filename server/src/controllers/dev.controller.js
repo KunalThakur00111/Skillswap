@@ -17,6 +17,11 @@ export const createTestUser = async(req, res) => {
             message: "Test user created successfully",
             user: testUser
         });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export const mentorDiagnostic = async(req, res) => {
     try {
         const totalUsers = await User.countDocuments();
