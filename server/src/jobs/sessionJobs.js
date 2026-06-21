@@ -19,24 +19,26 @@ const startSessionJobs = () => {
 
             for (const session of upcomingSessions) {
                 const timeDiffMs = session.startTime - now;
-                const hoursDiff = timeDiffMs / (1000 * 60 * 60);
+                const minutesDiff = timeDiffMs / (1000 * 60);
 
                 let reminderType = null;
                 let reminderMessage = null;
-
-                // We allow a small margin (e.g. 2 minutes) to prevent duplicate triggers
-                // but since it runs every minute, checking strictly might miss if server was down.
-                // A better approach is using fields like `notified24h`, but for simplicity:
                 
-                if (hoursDiff <= 24 && hoursDiff > 23.9) {
+                if (minutesDiff <= 1440 && minutesDiff > 1439) {
                     reminderType = '24h';
                     reminderMessage = 'Your session starts in 24 hours.';
-                } else if (hoursDiff <= 1 && hoursDiff > 0.98) {
+                } else if (minutesDiff <= 60 && minutesDiff > 59) {
                     reminderType = '1h';
                     reminderMessage = 'Your session starts in 1 hour. Get ready!';
-                } else if (hoursDiff <= 0.25 && hoursDiff > 0.23) {
+                } else if (minutesDiff <= 15 && minutesDiff > 14) {
                     reminderType = '15m';
                     reminderMessage = 'Your session starts in 15 minutes. Join now!';
+                } else if (minutesDiff <= 5 && minutesDiff > 4) {
+                    reminderType = '5m';
+                    reminderMessage = 'Your session is starting in 5 minutes! Get ready to join.';
+                } else if (minutesDiff <= 0 && minutesDiff > -1) {
+                    reminderType = '0m';
+                    reminderMessage = 'Your session has started! Please join now.';
                 }
 
                 if (reminderType) {
@@ -209,8 +211,8 @@ const startSessionJobs = () => {
                 }
             }
 
-            // 5. Auto-resolve scheduled sessions never started (endTime + 24h)
-            const resolveTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            // 5. Auto-resolve scheduled sessions never started (endTime + 1h)
+            const resolveTime = new Date(now.getTime() - 1 * 60 * 60 * 1000);
             const scheduledStuckSessions = await Session.find({
                 status: 'scheduled',
                 endTime: { $lt: resolveTime }
@@ -263,15 +265,46 @@ const startSessionJobs = () => {
             });
 
             for (const session of liveStuckSessions) {
-                session.status = 'completed_pending_confirmation';
-                session.completedAt = new Date();
-                await session.save();
+                const mongoSession = await mongoose.startSession();
+                try {
+                    mongoSession.startTransaction();
 
-                await createNotification({
-                    recipient: session.learner, type: "session_action_required", title: "Please Confirm Session",
-                    message: `Your session was marked completed automatically. Please confirm it to release credits to the mentor.`,
-                    relatedEntity: session._id, relatedEntityType: "Session"
-                });
+                    const activeSession = await Session.findById(session._id).session(mongoSession);
+                    if (activeSession.status !== 'live') throw new Error('Already processed');
+
+                    if (!activeSession.mentorJoinedAt || !activeSession.learnerJoinedAt) {
+                        activeSession.status = 'attendance_disputed';
+                        await activeSession.save({ session: mongoSession });
+
+                        await createNotification({
+                            recipient: activeSession.learner, type: "session_disputed", title: "Attendance Disputed",
+                            message: `Only one party joined the session. It has been marked as attendance disputed.`,
+                            relatedEntity: activeSession._id, relatedEntityType: "Session"
+                        });
+                        await createNotification({
+                            recipient: activeSession.mentor, type: "session_disputed", title: "Attendance Disputed",
+                            message: `Only one party joined the session. It has been marked as attendance disputed.`,
+                            relatedEntity: activeSession._id, relatedEntityType: "Session"
+                        });
+                    } else {
+                        activeSession.status = 'completed_pending_confirmation';
+                        activeSession.completedAt = new Date();
+                        await activeSession.save({ session: mongoSession });
+
+                        await createNotification({
+                            recipient: activeSession.learner, type: "session_action_required", title: "Please Confirm Session",
+                            message: `Your session was marked completed automatically. Please confirm it to release credits to the mentor.`,
+                            relatedEntity: activeSession._id, relatedEntityType: "Session"
+                        });
+                    }
+
+                    await mongoSession.commitTransaction();
+                } catch (err) {
+                    await mongoSession.abortTransaction();
+                    console.error("Auto-complete live error", err);
+                } finally {
+                    mongoSession.endSession();
+                }
             }
 
         } catch (error) {

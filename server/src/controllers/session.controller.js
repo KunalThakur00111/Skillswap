@@ -307,6 +307,7 @@ export const rejectSession = async(req, res) => {
 
 export const cancelSession = async(req, res) => {
     try {
+        const { reason } = req.body;
         const session = await Session.findById(req.params.id);
 
         if (!session) {
@@ -316,10 +317,20 @@ export const cancelSession = async(req, res) => {
             });
         }
 
-        if (session.learner.toString() !== req.user._id.toString()) {
+        const isLearner = session.learner.toString() === req.user._id.toString();
+        const isMentor = session.mentor.toString() === req.user._id.toString();
+
+        if (!isLearner && !isMentor) {
             return res.status(403).json({
                 success: false,
-                message: "Only learner can cancel this session"
+                message: "Only participants can cancel this session"
+            });
+        }
+
+        if (!reason || reason.trim().length < 10) {
+            return res.status(400).json({
+                success: false,
+                message: "Cancellation reason is required and must be at least 10 characters long"
             });
         }
 
@@ -343,10 +354,20 @@ export const cancelSession = async(req, res) => {
                     learner.lockedCredits -= sessionCost;
                     learner.credits += sessionCost;
                     await learner.save({ session: mongoSession });
+
+                    // We should add a CreditTransaction for the refund back from escrow if they want "create CreditTransaction if required".
+                    // The prompt said "create CreditTransaction if required" - it's a good practice to log it if we moved it from locked to unlocked due to cancellation.
+                    await CreditTransaction.create([{
+                        user: learner._id, session: session._id, type: "credit", reason: "session_refund",
+                        amount: sessionCost, balanceAfter: learner.credits, description: `Refunded ${sessionCost} credits due to session cancellation`
+                    }], { session: mongoSession, ordered: true });
                 }
             }
 
-            session.status = "cancelled";
+            const cancelledByRole = isLearner ? "learner" : "mentor";
+            session.status = isLearner ? "cancelled_by_learner" : "cancelled_by_mentor";
+            session.cancelledBy = cancelledByRole;
+            session.cancellationReason = reason.trim();
             session.cancelledAt = new Date();
             await session.save({ session: mongoSession });
             
@@ -358,11 +379,16 @@ export const cancelSession = async(req, res) => {
             mongoSession.endSession();
         }
 
+        const notifyRecipient = isLearner ? session.mentor : session.learner;
+        const notificationTitle = "Session Cancelled";
+        const roleStr = isLearner ? "learner" : "mentor";
+        const emailBody = isLearner ? `${req.user.name} cancelled the session.\n\nReason:\n${reason.trim()}` : `Your mentor cancelled the session.\n\nReason:\n${reason.trim()}\n\nYour credits have been refunded.`;
+
         await createNotification({
-            recipient: session.mentor,
+            recipient: notifyRecipient,
             type: "session_cancelled",
-            title: "Session Cancelled",
-            message: `${req.user.name} cancelled the session for ${session.skill}`,
+            title: notificationTitle,
+            message: emailBody,
             relatedEntity: session._id,
             relatedEntityType: "Session"
         });

@@ -1,7 +1,9 @@
 import User from "../models/User.js";
 import Session from "../models/Session.js";
-import Review from "../models/Review.js";
 import CreditTransaction from "../models/CreditTransaction.js";
+import { createNotification } from "../services/notification.service.js";
+import mongoose from "mongoose";
+import Review from "../models/Review.js";
 
 export const getAdminStats = async(req, res) => {
     try {
@@ -222,5 +224,81 @@ export const getAllSessionsForAdmin = async(req, res) => {
             success: false,
             message: error.message
         });
+    }
+};
+export const resolveDispute = async(req, res) => {
+    const mongoSession = await mongoose.startSession();
+    try {
+        const { id } = req.params;
+        const { resolution } = req.body; // 'resolved_for_learner' or 'resolved_for_mentor'
+
+        if (!['resolved_for_learner', 'resolved_for_mentor'].includes(resolution)) {
+            return res.status(400).json({ success: false, message: 'Invalid resolution status' });
+        }
+
+        let updatedSession;
+
+        await mongoSession.withTransaction(async () => {
+            const session = await Session.findById(id).session(mongoSession);
+            if (!session) throw new Error('Session not found');
+            if (session.status !== 'attendance_disputed' && session.status !== 'under_review') {
+                throw new Error('Session is not in a disputed state');
+            }
+
+            const learner = await User.findById(session.learner).session(mongoSession);
+            const mentor = await User.findById(session.mentor).session(mongoSession);
+
+            if (resolution === 'resolved_for_learner') {
+                if (learner.lockedCredits >= session.creditCost) {
+                    learner.lockedCredits -= session.creditCost;
+                    learner.credits += session.creditCost;
+                    await learner.save({ session: mongoSession });
+
+                    await CreditTransaction.create([{
+                        user: learner._id, session: session._id, type: 'credit', reason: 'dispute_resolved',
+                        amount: session.creditCost, balanceAfter: learner.credits, description: 'Dispute resolved: Credits refunded'
+                    }], { session: mongoSession, ordered: true });
+                }
+            } else if (resolution === 'resolved_for_mentor') {
+                if (learner.lockedCredits >= session.creditCost) {
+                    learner.lockedCredits -= session.creditCost;
+                    await learner.save({ session: mongoSession });
+
+                    mentor.credits += session.creditCost;
+                    mentor.completedSessions += 1;
+                    await mentor.save({ session: mongoSession });
+
+                    await CreditTransaction.create([{
+                        user: learner._id, session: session._id, type: 'debit', reason: 'dispute_resolved',
+                        amount: session.creditCost, balanceAfter: learner.credits, description: 'Dispute resolved: Payment sent to mentor'
+                    }, {
+                        user: mentor._id, session: session._id, type: 'credit', reason: 'dispute_resolved',
+                        amount: session.creditCost, balanceAfter: mentor.credits, description: 'Dispute resolved: Payment received'
+                    }], { session: mongoSession, ordered: true });
+                }
+            }
+
+            session.status = resolution;
+            await session.save({ session: mongoSession });
+            updatedSession = session;
+
+            await createNotification({
+                recipient: session.learner, type: 'session_resolved', title: 'Dispute Resolved',
+                message: `Your dispute for ${session.skill} has been resolved: ${resolution.replace(/_/g, ' ')}.`,
+                relatedEntity: session._id, relatedEntityType: 'Session'
+            });
+
+            await createNotification({
+                recipient: session.mentor, type: 'session_resolved', title: 'Dispute Resolved',
+                message: `The dispute for ${session.skill} has been resolved: ${resolution.replace(/_/g, ' ')}.`,
+                relatedEntity: session._id, relatedEntityType: 'Session'
+            });
+        });
+
+        res.status(200).json({ success: true, message: 'Dispute resolved successfully', session: updatedSession });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        mongoSession.endSession();
     }
 };

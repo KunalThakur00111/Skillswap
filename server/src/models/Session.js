@@ -96,7 +96,7 @@ const sessionSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ["pending", "accepted", "scheduled", "live", "completed_pending_confirmation", "completed", "under_review", "resolved_for_learner", "resolved_for_mentor", "no_show", "rescheduled", "expired", "rejected", "cancelled"],
+        enum: ["pending", "accepted", "scheduled", "live", "completed_pending_confirmation", "completed", "under_review", "resolved_for_learner", "resolved_for_mentor", "no_show", "rescheduled", "expired", "rejected", "cancelled_by_learner", "cancelled_by_mentor", "attendance_disputed"],
         default: "pending"
     },
 
@@ -115,6 +115,17 @@ const sessionSchema = new mongoose.Schema({
 
     cancelledAt: {
         type: Date
+    },
+
+    cancelledBy: {
+        type: String,
+        enum: ["learner", "mentor"]
+    },
+
+    cancellationReason: {
+        type: String,
+        minlength: 10,
+        maxlength: 500
     },
 
     rejectedAt: {

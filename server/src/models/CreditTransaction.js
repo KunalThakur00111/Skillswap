@@ -24,7 +24,7 @@ const creditTransactionSchema = new mongoose.Schema({
             "session_completed_payment",
             "session_completed_earning",
             "signup_bonus",
-            "refund"
+            "refund", "session_refund", "session_auto_completed", "dispute_resolved", "session_completed"
         ],
         required: true
     },

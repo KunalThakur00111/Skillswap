@@ -16,7 +16,7 @@ const notificationSchema = new mongoose.Schema(
                 "session_rejected",
                 "session_rescheduled",
                 "session_cancelled",
-                "session_starting_soon",
+                "session_starting_soon", "session_resolved", "session_missed", "session_expired", "session_action_required", "session_disputed", "session_auto_confirmed", "credits_released", "session_reminder_24h", "session_reminder_1h", "session_reminder_15m", "session_reminder_5m", "session_reminder_0m",
                 "session_completed",
                 "review_received",
                 "rating_received",

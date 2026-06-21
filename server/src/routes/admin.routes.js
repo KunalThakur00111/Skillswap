@@ -5,7 +5,8 @@ import {
     blockUser,
     unblockUser,
     makeUserAdmin,
-    getAllSessionsForAdmin
+    getAllSessionsForAdmin,
+    resolveDispute
 } from "../controllers/admin.controller.js";
 import { protect, requireAdmin } from "../middleware/auth.middleware.js";
 
@@ -17,5 +18,6 @@ router.patch("/users/:id/block", protect, requireAdmin, blockUser);
 router.patch("/users/:id/unblock", protect, requireAdmin, unblockUser);
 router.patch("/users/:id/make-admin", protect, requireAdmin, makeUserAdmin);
 router.get("/sessions", protect, requireAdmin, getAllSessionsForAdmin);
+router.patch("/sessions/:id/resolve-dispute", protect, requireAdmin, resolveDispute);
 
 export default router;

@@ -8,7 +8,12 @@ const EMAIL_TRIGGERS = [
     "session_request",
     "session_accepted",
     "session_cancelled",
-    "session_starting_soon"
+    "session_starting_soon",
+    "session_reminder_24h",
+    "session_reminder_1h",
+    "session_reminder_15m",
+    "session_reminder_5m",
+    "session_reminder_0m"
 ];
 
 export const createNotification = async ({

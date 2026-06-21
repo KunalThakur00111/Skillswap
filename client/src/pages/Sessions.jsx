@@ -36,6 +36,9 @@ function Sessions() {
     rating: 5,
     comment: ""
   });
+  const [cancelSessionItem, setCancelSessionItem] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+
 
   const [page, setPage] = useState(1);
 
@@ -149,16 +152,22 @@ function Sessions() {
     });
   };
 
-  const runSessionAction = async (sessionId, action) => {
+  const runSessionAction = async (sessionId, action, body = null) => {
     try {
       setActionLoading(`${sessionId}-${action}`);
       setError("");
       setMessage("");
 
-      const data = await apiRequest(`/sessions/${sessionId}/${action}`, {
+      const options = {
         method: "PATCH",
         token
-      });
+      };
+      
+      if (body) {
+        options.body = body;
+      }
+
+      const data = await apiRequest(`/sessions/${sessionId}/${action}`, options);
 
       setMessage(data.message || "Session updated successfully");
       await refetch();
@@ -168,6 +177,44 @@ function Sessions() {
       setActionLoading("");
     }
   };
+
+  const openCancelModal = (session) => {
+    setCancelSessionItem(session);
+    setCancelReason("");
+    setError("");
+    setMessage("");
+  };
+
+  const submitCancel = async (event) => {
+    event.preventDefault();
+    if (!cancelSessionItem) return;
+
+    if (cancelReason.trim().length < 10) {
+      setError("Reason must be at least 10 characters.");
+      return;
+    }
+
+    try {
+      setActionLoading(`${cancelSessionItem._id}-cancel`);
+      setError("");
+      setMessage("");
+
+      const data = await apiRequest(`/sessions/${cancelSessionItem._id}/cancel`, {
+        method: "PATCH",
+        token,
+        body: { reason: cancelReason.trim() }
+      });
+
+      setMessage(data.message || "Session cancelled successfully");
+      setCancelSessionItem(null);
+      await refetch();
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setActionLoading("");
+    }
+  };
+
 
   const openReviewModal = (session) => {
     setReviewSession(session);
@@ -294,7 +341,17 @@ function Sessions() {
   };
 
   const canCancel = (session) => {
-    return isLearner(session) && ["pending", "accepted", "scheduled"].includes(session.status);
+    return (isLearner(session) || isMentor(session)) && ["pending", "accepted", "scheduled"].includes(session.status);
+  };
+
+  const canReportNoShow = (session) => {
+    if (!["scheduled", "live"].includes(session.status)) return false;
+    // Check if end time passed
+    if (session.endTime) {
+      const isPast = new Date() > new Date(session.endTime);
+      return isPast && (isLearner(session) || isMentor(session));
+    }
+    return false;
   };
 
   const canSchedule = (session) => {
@@ -395,11 +452,21 @@ function Sessions() {
 
         {canCancel(session) && (
           <button
-            onClick={() => runSessionAction(sessionId, "cancel")}
+            onClick={() => openCancelModal(session)}
             disabled={actionLoading === `${sessionId}-cancel`}
             className="rounded-2xl border border-red-500/40 px-4 py-3 text-sm font-bold text-red-300 hover:bg-red-500/10 disabled:opacity-60"
           >
             {actionLoading === `${sessionId}-cancel` ? "Cancelling..." : "Cancel"}
+          </button>
+        )}
+
+        {canReportNoShow(session) && (
+          <button
+            onClick={() => runSessionAction(sessionId, "report-no-show", { noShowBy: isLearner(session) ? "mentor" : "learner" })}
+            disabled={actionLoading === `${sessionId}-report-no-show`}
+            className="rounded-2xl border border-orange-500/40 px-4 py-3 text-sm font-bold text-orange-400 hover:bg-orange-500/10 disabled:opacity-60"
+          >
+            {actionLoading === `${sessionId}-report-no-show` ? "Reporting..." : "Report No Show"}
           </button>
         )}
 
@@ -427,6 +494,7 @@ function Sessions() {
           !canComplete(session) &&
           !canConfirm(session) &&
           !canCancel(session) &&
+          !canReportNoShow(session) &&
           !canReview(session) && (
             <span className="rounded-2xl border border-white/10 px-4 py-3 text-center text-sm font-bold text-slate-500">
               No action needed
@@ -598,7 +666,23 @@ function Sessions() {
                               Completed {formatDate(session.completedAt)}
                             </span>
                           )}
+                          {session.cancelledAt && (
+                            <span className="text-red-400">
+                              Cancelled at {formatDate(session.cancelledAt)}
+                            </span>
+                          )}
                         </div>
+
+                        {session.cancellationReason && (
+                          <div className="mt-4 max-w-3xl rounded-2xl border border-red-500/20 bg-red-500/5 p-4 text-sm leading-6">
+                            <span className="font-bold text-red-400 block mb-1">
+                              Cancelled by {session.cancelledBy}
+                            </span>
+                            <p className="text-red-200">
+                              Reason: {session.cancellationReason}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="2xl:min-w-64 2xl:text-right">
@@ -817,6 +901,51 @@ function Sessions() {
                   className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-4 text-white outline-none focus:border-blue-500"
                 />
               </div>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      <Modal
+        open={Boolean(cancelSessionItem)}
+        eyebrow="Cancel session"
+        title="Are you sure you want to cancel?"
+        description="Please provide a reason for cancelling this session. If you cancel an accepted or scheduled session, escrowed credits will be fully refunded to the learner."
+        onClose={() => setCancelSessionItem(null)}
+        maxWidth="max-w-2xl"
+        footer={
+          <div className="modal-action-row flex flex-col-reverse gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setCancelSessionItem(null)}
+              className="rounded-2xl border border-white/10 px-6 py-4 font-bold text-slate-300 hover:bg-white/[0.04]"
+            >
+              Close
+            </button>
+            <button
+              type="submit"
+              form="cancel-session-form"
+              disabled={cancelSessionItem && actionLoading === `${cancelSessionItem._id}-cancel`}
+              className="rounded-2xl bg-red-500 px-6 py-4 font-bold text-white shadow-lg shadow-red-500/20 hover:bg-red-600 disabled:opacity-60"
+            >
+              {cancelSessionItem && actionLoading === `${cancelSessionItem._id}-cancel` ? "Cancelling..." : "Confirm Cancellation"}
+            </button>
+          </div>
+        }
+      >
+        {cancelSessionItem && (
+          <form id="cancel-session-form" onSubmit={submitCancel} className="space-y-6">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-300">Cancellation Reason</label>
+              <textarea
+                required
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                rows="4"
+                placeholder="E.g., Emergency came up, internet issue, need to reschedule..."
+                className="w-full resize-none rounded-2xl border border-white/10 bg-slate-950 px-4 py-4 text-white outline-none focus:border-red-500"
+              />
+              <p className="mt-2 text-xs text-slate-500">Minimum 10 characters required.</p>
             </div>
           </form>
         )}
