@@ -5,6 +5,7 @@ import SectionCard from "../components/ui/SectionCard";
 import StatusBadge from "../components/ui/StatusBadge";
 import UserAvatar from "../components/ui/UserAvatar";
 import EmptyState from "../components/ui/EmptyState";
+import Modal from "../components/ui/Modal";
 
 function MentorCalendar() {
   const token = localStorage.getItem("token");
@@ -12,6 +13,9 @@ function MentorCalendar() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState("");
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
+  const [meetingLink, setMeetingLink] = useState("");
 
   const fetchSessions = async () => {
     try {
@@ -55,29 +59,36 @@ function MentorCalendar() {
     }
   };
 
-  const handleAddLink = async (sessionId) => {
-    const link = prompt("Enter the meeting link (Google Meet, Zoom, Teams, etc.):");
-    if (!link) return;
+  const handleAddLinkClick = (sessionId) => {
+    setSelectedSessionId(sessionId);
+    setMeetingLink("");
+    setIsLinkModalOpen(true);
+  };
+
+  const submitMeetingLink = async (e) => {
+    e.preventDefault();
+    if (!meetingLink) return;
 
     try {
-      setActionLoading(sessionId);
+      setActionLoading(selectedSessionId);
       // We reuse the schedule endpoint or create a simpler add-link endpoint.
       // Assuming the backend still requires startTime/endTime for PUT /:id/schedule
       // Let's just use PATCH /sessions/:id/link if available, or we just pass the existing times.
       // Wait, in my session controller I only have PUT /sessions/:id/schedule. Let's pass the existing times.
-      const session = sessions.find(s => s._id === sessionId);
-      await apiRequest(`/sessions/${sessionId}/schedule`, {
+      const session = sessions.find(s => s._id === selectedSessionId);
+      await apiRequest(`/sessions/${selectedSessionId}/schedule`, {
         method: "PATCH",
         token,
         body: {
           startTime: session.startTime,
           endTime: session.endTime,
-          meetingPlatform: link.includes("meet.google.com") ? "Google Meet" : link.includes("zoom.us") ? "Zoom" : link.includes("teams.microsoft.com") ? "Microsoft Teams" : "Other",
-          meetingLink: link,
+          meetingPlatform: meetingLink.includes("meet.google.com") ? "Google Meet" : meetingLink.includes("zoom.us") ? "Zoom" : meetingLink.includes("teams.microsoft.com") ? "Microsoft Teams" : "Other",
+          meetingLink: meetingLink,
           timezone: session.timezone || "UTC"
         }
       });
       fetchSessions();
+      setIsLinkModalOpen(false);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -125,7 +136,7 @@ function MentorCalendar() {
 
         {(session.status === "scheduled" || session.status === "accepted") && !session.meetingLink && (
            <button 
-             onClick={() => handleAddLink(session._id)}
+             onClick={() => handleAddLinkClick(session._id)}
              disabled={actionLoading === session._id}
              className="rounded-xl border border-white/10 px-4 py-2 text-sm font-bold hover:bg-white/[0.05]"
            >
@@ -226,6 +237,47 @@ function MentorCalendar() {
           </SectionCard>
         </div>
       </div>
+
+      <Modal
+        open={isLinkModalOpen}
+        onClose={() => setIsLinkModalOpen(false)}
+        title="Add Meeting Link"
+        description="Enter the URL where the session will take place (Google Meet, Zoom, etc.)."
+        maxWidth="max-w-md"
+      >
+        <form onSubmit={submitMeetingLink} className="space-y-4 mt-2">
+          <div>
+            <label htmlFor="meetingLink" className="block text-sm font-medium text-slate-300 mb-1">
+              Meeting URL
+            </label>
+            <input
+              type="url"
+              id="meetingLink"
+              required
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="https://meet.google.com/..."
+              value={meetingLink}
+              onChange={(e) => setMeetingLink(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+            <button
+              type="button"
+              onClick={() => setIsLinkModalOpen(false)}
+              className="rounded-xl px-5 py-2.5 text-sm font-bold text-slate-300 hover:bg-white/[0.04]"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!meetingLink || actionLoading === selectedSessionId}
+              className="rounded-xl bg-blue-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 hover:bg-blue-600 disabled:opacity-50"
+            >
+              {actionLoading === selectedSessionId ? "Saving..." : "Save Link"}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </main>
   );
 }
