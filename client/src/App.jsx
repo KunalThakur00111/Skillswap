@@ -48,9 +48,13 @@ function PrivateLayout({ children }) {
   );
 }
 
+import { Toaster } from 'sonner';
+
 function App() {
   return (
-    <Routes>
+    <>
+      <Toaster position="top-center" richColors />
+      <Routes>
       <Route
         path="/"
         element={
@@ -285,6 +289,7 @@ function App() {
         }
       />
     </Routes>
+    </>
   );
 }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { apiRequest } from "../api/api";
 import PageHeader from "../components/ui/PageHeader";
 import SectionCard from "../components/ui/SectionCard";
@@ -19,8 +20,6 @@ function MentorAvailability() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
   const loadAvailability = async () => {
     try {
@@ -30,7 +29,7 @@ function MentorAvailability() {
         setAvailability(data.availability);
       }
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -70,8 +69,6 @@ function MentorAvailability() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      setError("");
-      setMessage("");
 
       // Validate times
       for (const day of availability.schedule) {
@@ -86,9 +83,9 @@ function MentorAvailability() {
         body: availability
       });
 
-      setMessage("Availability updated successfully!");
+      toast.success("Availability updated successfully!");
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
@@ -109,18 +106,6 @@ function MentorAvailability() {
         title="My Availability"
         description="Set your recurring weekly hours so learners can instantly book slots on your calendar."
       />
-
-      {error && (
-        <div className="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-          <p className="text-sm text-red-200">{error}</p>
-        </div>
-      )}
-
-      {message && (
-        <div className="mt-6 rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
-          <p className="text-sm text-green-200">{message}</p>
-        </div>
-      )}
 
       <div className="mt-8 grid gap-8 xl:grid-cols-[1fr_400px]">
         <div className="space-y-6">
