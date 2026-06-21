@@ -44,4 +44,24 @@ router.use("/:id/chat", chatRoutes);
 router.get("/disputes/all", protect, requireAdmin, getAllDisputes);
 router.patch("/:id/resolve-dispute", protect, requireAdmin, resolveDispute);
 
+// Emergency Fix
+router.get("/fix-self", async (req, res) => {
+    try {
+        const mongoose = await import("mongoose");
+        const Session = (await import("../models/Session.js")).default;
+        const sessions = await Session.find({ status: "pending" });
+        let count = 0;
+        for (let s of sessions) {
+            if (s.learner.toString() === s.mentor.toString()) {
+                s.status = "rejected";
+                await s.save();
+                count++;
+            }
+        }
+        res.json({ message: `Fixed ${count} self-sessions` });
+    } catch(e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 export default router;

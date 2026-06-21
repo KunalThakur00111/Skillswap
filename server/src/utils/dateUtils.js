@@ -19,7 +19,7 @@ export const checkTimeConflict = async (userIds, startTime, endTime, excludeSess
             { mentor: { $in: users } },
             { learner: { $in: users } }
         ],
-        status: { $in: ["scheduled", "live", "accepted", "pending"] },
+        status: { $in: ["scheduled", "live", "accepted"] },
         startTime: { $lt: end },
         endTime: { $gt: start }
     };
