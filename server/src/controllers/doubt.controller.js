@@ -63,26 +63,46 @@ export const getDoubts = async (req, res) => {
             query.tags = { $regex: new RegExp(tag, 'i') };
         }
 
-        let sortOption = { createdAt: -1 };
-        switch (sort) {
-            case "oldest": sortOption = { createdAt: 1 }; break;
-            case "most_upvoted": sortOption = { "upvotes.length": -1 }; break;
-            case "most_replied": sortOption = { "replies.length": -1 }; break;
-            case "most_viewed": sortOption = { "viewers.length": -1 }; break;
-            case "trending":
-                sortOption = { "viewers.length": -1, createdAt: -1 }; 
-                break;
-            default: sortOption = { createdAt: -1 };
-        }
-
         const skip = (parseInt(page) - 1) * parseInt(limit);
+        const isAggregateSort = ["most_upvoted", "most_replied", "most_viewed", "trending"].includes(sort);
+        
+        let sortOption = { createdAt: -1 };
+        let doubts = [];
 
-        const doubts = await Doubt.find(query)
-            .populate("author", "name avatar role")
-            .sort(sortOption)
-            .skip(skip)
-            .limit(parseInt(limit))
-            .lean();
+        if (isAggregateSort) {
+            switch (sort) {
+                case "most_upvoted": sortOption = { upvoteCount: -1, createdAt: -1 }; break;
+                case "most_replied": sortOption = { replyCount: -1, createdAt: -1 }; break;
+                case "most_viewed": sortOption = { viewCount: -1, createdAt: -1 }; break;
+                case "trending": sortOption = { viewCount: -1, createdAt: -1 }; break;
+            }
+
+            const aggResult = await Doubt.aggregate([
+                { $match: query },
+                { $addFields: { 
+                    upvoteCount: { $size: { $ifNull: ["$upvotes", []] } },
+                    replyCount: { $size: { $ifNull: ["$replies", []] } },
+                    viewCount: { $size: { $ifNull: ["$viewers", []] } }
+                }},
+                { $sort: sortOption },
+                { $skip: skip },
+                { $limit: parseInt(limit) }
+            ]);
+
+            doubts = await Doubt.populate(aggResult, { path: "author", select: "name avatar role" });
+        } else {
+            switch (sort) {
+                case "oldest": sortOption = { createdAt: 1 }; break;
+                default: sortOption = { createdAt: -1 };
+            }
+
+            doubts = await Doubt.find(query)
+                .populate("author", "name avatar role")
+                .sort(sortOption)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .lean();
+        }
 
         // Format for anonymous + compute views from viewers array
         const formattedDoubts = doubts.map(doubt => {
