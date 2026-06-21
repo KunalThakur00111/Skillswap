@@ -3,6 +3,7 @@ import Doubt from "../models/Doubt.js";
 import User from "../models/User.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { createNotification } from "../services/notification.service.js";
+import { invalidateCache } from "../config/redis.js";
 
 export const createReply = async (req, res) => {
     try {
@@ -57,6 +58,8 @@ export const createReply = async (req, res) => {
             });
         }
 
+        await invalidateCache("doubts*");
+
         res.status(201).json({ success: true, reply: newReply });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -74,6 +77,8 @@ export const updateReply = async (req, res) => {
 
         if (req.body.content) reply.content = req.body.content;
         await reply.save();
+
+        await invalidateCache("doubts*");
 
         res.status(200).json({ success: true, reply });
     } catch (error) {
@@ -93,6 +98,8 @@ export const deleteReply = async (req, res) => {
         reply.isDeleted = true;
         reply.deletedAt = new Date();
         await reply.save();
+
+        await invalidateCache("doubts*");
 
         res.status(200).json({ success: true, message: "Reply deleted successfully" });
     } catch (error) {
@@ -128,6 +135,7 @@ export const upvoteReply = async (req, res) => {
         }
 
         await reply.save();
+        await invalidateCache("doubts*");
         res.status(200).json({ success: true, upvotes: reply.upvotes.length, downvotes: reply.downvotes.length, hasUpvoted: !hasUpvoted });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -162,6 +170,7 @@ export const downvoteReply = async (req, res) => {
         }
 
         await reply.save();
+        await invalidateCache("doubts*");
         res.status(200).json({ success: true, upvotes: reply.upvotes.length, downvotes: reply.downvotes.length, hasDownvoted: !hasDownvoted });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -215,6 +224,8 @@ export const acceptReply = async (req, res) => {
             relatedEntityType: "Doubt",
             relatedEntity: doubtId
         });
+
+        await invalidateCache("doubts*");
 
         res.status(200).json({ success: true, message: "Answer accepted successfully" });
     } catch (error) {

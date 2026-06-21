@@ -2,6 +2,7 @@ import Review from "../models/Review.js";
 import Session from "../models/Session.js";
 import User from "../models/User.js";
 import { createNotification } from "../services/notification.service.js";
+import { invalidateCache } from "../config/redis.js";
 
 const updateMentorRating = async(mentorId) => {
     const result = await Review.aggregate([{
@@ -116,6 +117,8 @@ export const createReview = async(req, res) => {
             relatedEntity: review._id,
             relatedEntityType: "Review"
         });
+
+        await invalidateCache(`reviews*`);
 
         res.status(201).json({
             success: true,

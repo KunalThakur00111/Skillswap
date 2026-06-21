@@ -1,4 +1,5 @@
 import Notification from "../models/Notification.js";
+import { invalidateCache } from "../config/redis.js";
 
 // @desc    Get all notifications for the logged in user
 // @route   GET /api/notifications
@@ -67,6 +68,8 @@ export const markAsRead = async (req, res) => {
             return res.status(404).json({ success: false, message: "Notification not found" });
         }
 
+        await invalidateCache(`notifications:${req.user._id}:*`);
+
         res.json({
             success: true,
             notification
@@ -86,6 +89,8 @@ export const markAllAsRead = async (req, res) => {
             { recipient: req.user._id, isRead: false },
             { $set: { isRead: true } }
         );
+
+        await invalidateCache(`notifications:${req.user._id}:*`);
 
         res.json({
             success: true,

@@ -2,6 +2,7 @@ import Notification from "../models/Notification.js";
 import User from "../models/User.js";
 import { getIO, getUserSocketId } from "../socket.js";
 import { sendNotificationEmail } from "../utils/sendEmail.js";
+import { invalidateCache } from "../config/redis.js";
 
 // Types that trigger emails
 const EMAIL_TRIGGERS = [
@@ -58,6 +59,8 @@ export const createNotification = async ({
                 });
             }
         }
+
+        await invalidateCache(`notifications:${recipient}:*`);
 
         return notification;
     } catch (error) {

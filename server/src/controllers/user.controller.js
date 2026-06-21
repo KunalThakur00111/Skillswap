@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import { invalidateCache } from "../config/redis.js";
 
 const cleanSkills = (skills) => {
     if (!skills) {
@@ -61,6 +62,8 @@ export const updateMyProfile = async(req, res) => {
             new: true,
             runValidators: true
         }).select("-password -verificationCode -verificationCodeExpires");
+
+        await invalidateCache("mentors*");
 
         res.status(200).json({
             success: true,

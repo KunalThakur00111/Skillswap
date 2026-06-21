@@ -22,14 +22,15 @@ import {
     downvoteReply,
     acceptReply
 } from "../controllers/reply.controller.js";
+import { cacheRoute } from "../middleware/cache.middleware.js";
 
 const router = express.optionalRouter ? express.Router() : express.Router();
 
 // Doubt Routes
 router.post("/", protect, upload.array("images", 5), createDoubt);
-router.get("/", protect, getDoubts);
+router.get("/", protect, cacheRoute("doubts", 60), getDoubts);
 router.get("/bookmarked", protect, getBookmarkedDoubts);
-router.get("/stats", protect, getCommunityStats);
+router.get("/stats", protect, cacheRoute("doubts_stats", 300), getCommunityStats);
 router.get("/:id", protect, getDoubtById);
 router.put("/:id", protect, updateDoubt);
 router.delete("/:id", protect, deleteDoubt);

@@ -4,6 +4,7 @@ import Reply from "../models/Reply.js";
 import User from "../models/User.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { createNotification, broadcastNotification } from "../services/notification.service.js";
+import { invalidateCache } from "../config/redis.js";
 
 // Create a new doubt
 export const createDoubt = async (req, res) => {
@@ -42,6 +43,8 @@ export const createDoubt = async (req, res) => {
             "Doubt",
             newDoubt._id
         );
+
+        await invalidateCache("doubts*");
 
         res.status(201).json({ success: true, doubt: newDoubt });
     } catch (error) {
@@ -202,6 +205,8 @@ export const updateDoubt = async (req, res) => {
 
         await doubt.save();
 
+        await invalidateCache("doubts*");
+
         res.status(200).json({ success: true, doubt });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -223,6 +228,8 @@ export const deleteDoubt = async (req, res) => {
         doubt.isDeleted = true;
         doubt.deletedAt = new Date();
         await doubt.save();
+
+        await invalidateCache("doubts*");
 
         res.status(200).json({ success: true, message: "Doubt deleted successfully" });
     } catch (error) {
@@ -251,6 +258,8 @@ export const upvoteDoubt = async (req, res) => {
         }
 
         await doubt.save();
+        await invalidateCache("doubts*");
+
         res.status(200).json({ success: true, upvotes: doubt.upvotes.length, downvotes: doubt.downvotes.length, hasUpvoted: !hasUpvoted });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -278,6 +287,8 @@ export const downvoteDoubt = async (req, res) => {
         }
 
         await doubt.save();
+        await invalidateCache("doubts*");
+
         res.status(200).json({ success: true, upvotes: doubt.upvotes.length, downvotes: doubt.downvotes.length, hasDownvoted: !hasDownvoted });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
